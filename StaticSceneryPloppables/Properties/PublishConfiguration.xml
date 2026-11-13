@@ -9,45 +9,45 @@
 	<LongDescription>
 # Static Scenery Ploppables
 
+**English** | 中文见下方
+
 Turn **any** vanilla zoned building into a **static, property-free scenery piece** you can place anywhere - no zoning requirements, no simulation load.
 
-## What it does
-
-- Browse all 2000+ vanilla zoned buildings in a Find It-style panel (search, zone tabs, filters for density / level / width / depth).
-- Click an entry and place it. The building is placed **with its vanilla lot surface and its randomized surroundings** - trees, benches, planters, bins, poles.
-- Every placement rolls its own decoration variant using the game's own randomization, so no two placements are identical.
+**What it does**
+- Browse all 2000+ vanilla zoned buildings in a Find It-style panel: search, zone tabs, and filters for density / level / width / depth.
+- Click an entry and place it. The building comes **with its vanilla lot surface and randomized decorations** - trees, benches, planters, bins, light poles.
+- Every placement rolls its own decoration variant with the game's own randomization, so no two placements are identical.
 - The result is a pure shell: **no residents, no jobs, no households, no companies, no simulation cost**.
 
-## Typical uses
+**Compatibility and safety**
+- Decorations are created once, at placement time; missing decoration prefabs are skipped.
+- The vanilla relocate tool and bulldozing clean up lot surfaces correctly.
+- Uninstall-safe (verified): the save still loads and does not crash. Placed objects become missing-prefab placeholders (white models) and can be bulldozed together with their decorations.
+- No dependencies. Works alongside Find It, Move It, Anarchy and ctrlC.
 
-- Decorate districts with buildings the zoning system would never allow.
-- Build back-lot scenery, alley filler, industrial parks, waterfront clutter.
-- Keep a city's look while freeing the lots from simulation.
+**Localization**: panel text follows your game language - English, Simplified/Traditional Chinese, German, French, Spanish, Portuguese (BR), Russian, Polish, Japanese, Korean. Other languages fall back to English.
 
-## Compatibility and safety
+---
 
-- Decorations are placed **once**, at placement time. If a decoration prefab is missing in your city (e.g. DLC you do not own), it is simply skipped.
-- Relocation (the vanilla relocate tool) and bulldozing clean up the lot surfaces correctly.
-- Removing the mod is safe: the save still loads and does not crash. Placed scenery objects become missing-prefab placeholders (white models); bulldozing a placeholder removes its decorations too. Bulldoze your placed scenery before uninstalling if you want a clean map.
-- No dependencies on other mods. Works alongside Find It, Move It, Anarchy and ctrlC.
+# 静态造景建筑
 
-## Localization
+把**任意原版分区建筑**变成**静态、无属性、可随处放置**的造景件——不受分区限制，也不产生任何模拟负担。
 
-Panel text follows your game language: English, Simplified Chinese, Traditional Chinese, Deutsch, Francais, Espanol, Portugues (BR), Russian, Polski, Japanese, Korean. Other languages fall back to English.
+**它做什么**
+- 在 Find It 式面板里浏览全部 2000+ 原版分区建筑：支持搜索、类型页签（住宅/商业/工业/办公），以及按密度、等级、面宽、进深筛选。
+- 点击条目即可放置：建筑会连同**原版地皮**与**随机装饰**一起出现——树木、长椅、花盆、垃圾箱、灯杆等。
+- 每次摆放都用游戏自身的随机逻辑抽一份装饰方案，所以没有两处完全相同。
+- 放置结果是一栋纯净外壳：**没有居民、没有岗位、没有住户与公司、不产生模拟开销**。
 
-## Credits
+**兼容与安全**
+- 装饰在放置那一刻一次性生成；缺失的装饰 prefab 会被跳过。
+- 原版**迁移**与**拆除**都会正确清理地皮。
+- **卸载安全（实测）**：移除模组后存档能正常载入、不崩溃；摆放物会变成白模占位，用推土机拆除白模时装饰一并清除。
+- 无前置依赖，可与 Find It / Move It / Anarchy / ctrlC 共存。
 
-Implementation learned from these open-source mods and community docs (approach reference only, no bundled code):
+**语言支持**：面板文案跟随游戏语言——English、简体/繁体中文、德文、法文、西班牙文、葡萄牙文（BR）、俄文、波兰文、日文、韩文；其余语言回退英文。
 
-- Find It (JadHajjar) - panel UX and the `ToolSystem.ActivatePrefabTool` placement path: https://github.com/JadHajjar/FindIt-CSII
-- ctrlC (jk1422) - asset-stamp area copying and toolbar entry pattern: https://github.com/jk1422/ctrlC
-- Move It (Quboid) - project and build/deploy layout conventions: https://github.com/Quboid/CS2-MoveIt
-- Better Bulldozer (yenyang) - safe removal of building-owned sub-elements (`DeleteInXFrames` plus barrier `Deleted`): https://github.com/yenyang/BetterBulldozer
-- Plop the Growables (algernon-A) - confirmation that CS2 supports placing growables directly, which led to dropping asset stamps: https://github.com/algernon-A/PlopTheGrowables
-- cs2-modding-guide (BrokeAssSoftware) - verified rules for sub-element removal: https://github.com/BrokeAssSoftware/cs2-modding-guide
-- Cities Skylines 2 Modding Guide (ps1ke) - API reference: https://ps1ke.github.io/Cities-Skylines-2-Modding-Guide/
-
-Source code: https://github.com/LiangHaoXiang/StaticSceneryPloppables
+**源码与反馈**：https://github.com/LiangHaoXiang/StaticSceneryPloppables
 	</LongDescription>
 	<!--Thumbnail: relative path inside the project; the publisher uploads it-->
 	<Thumbnail Value="..\assets\publish\thumbnail.png" />
