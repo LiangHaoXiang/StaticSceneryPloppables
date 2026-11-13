@@ -28,7 +28,7 @@ Turn **any** vanilla zoned building into a **static, property-free scenery piece
 
 - Decorations are placed **once**, at placement time. If a decoration prefab is missing in your city (e.g. DLC you do not own), it is simply skipped.
 - Relocation (the vanilla relocate tool) and bulldozing clean up the lot surfaces correctly.
-- Removing the mod is safe: placed objects reference vanilla prefabs, so saves load with unknown-prefab warnings rather than breakage.
+- Removing the mod is safe: the save still loads and does not crash. Placed scenery objects become missing-prefab placeholders (white models); bulldozing a placeholder removes its decorations too. Bulldoze your placed scenery before uninstalling if you want a clean map.
 - No dependencies on other mods. Works alongside Find It, Move It, Anarchy and ctrlC.
 
 ## Localization

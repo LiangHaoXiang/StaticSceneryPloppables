@@ -49,7 +49,7 @@
 
 - 装饰在**放置那一刻**一次性生成，之后不会反复重建；缺失的装饰 prefab 会被跳过。
 - **迁移**与**拆除**都会正确清理地皮。
-- **卸载安全**：摆放物只引用原版 prefab，移除模组后存档只会出现「未知 prefab」警告，不会损坏存档。
+- **卸载安全（实测）**：移除本模组后存档能正常载入、不会崩溃；已摆放的造景物会变成白模占位，用推土机拆除白模时其装饰会一并清除。建议卸载前先拆掉已摆放的造景物。
 - 无前置依赖，可与 Find It / Move It / Anarchy / ctrlC 共存。
 
 **语言支持**
@@ -83,7 +83,7 @@ Turn **any** vanilla zoned building into a **static, property-free scenery piece
 
 - Decorations are created **once**, at placement time; missing decoration prefabs are skipped.
 - The vanilla **relocate** tool and **bulldozing** clean up lot surfaces correctly.
-- **Uninstall-safe**: placed objects reference vanilla prefabs, so removing the mod leaves unknown-prefab warnings instead of breaking saves.
+- **Uninstall-safe (verified in game)**: the save still loads and does not crash after removing the mod. Placed scenery objects turn into missing-prefab placeholders (white models); bulldozing a placeholder removes its decorations along with it. Recommendation: bulldoze your placed scenery before uninstalling.
 - No dependencies. Works alongside Find It, Move It, Anarchy and ctrlC.
 
 **Localization**
