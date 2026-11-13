@@ -51,11 +51,13 @@ Source code: https://github.com/LiangHaoXiang/StaticSceneryPloppables
 	</LongDescription>
 	<!--Thumbnail: relative path inside the project; the publisher uploads it-->
 	<Thumbnail Value="assets/publish/thumbnail.png" />
-	<!--Screenshots: panel (zh/en) + in-game placements-->
+	<!--Screenshots: panel (zh/en) + four in-game placements-->
 	<Screenshot Value="assets/publish/panel_chinese.png" />
 	<Screenshot Value="assets/publish/panel_english.png" />
-	<Screenshot Value="assets/publish/place1.png" />
-	<Screenshot Value="assets/publish/place2.png" />
+	<Screenshot Value="assets/publish/place1.jpg" />
+	<Screenshot Value="assets/publish/place2.jpg" />
+	<Screenshot Value="assets/publish/place3.jpg" />
+	<Screenshot Value="assets/publish/place4.jpg" />
 	<!--Tags-->
 	<Tag Value="Code Mod" />
 	<Tag Value="Tools" />
