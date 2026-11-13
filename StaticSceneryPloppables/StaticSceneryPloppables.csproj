@@ -88,4 +88,16 @@
                Text="Cities2.exe is running. Close the game before building/publishing, otherwise the deploy step wipes Mods\StaticSceneryPloppables and fails to restore the dll. (Set /p:SSP_SkipGameGuard=true to bypass.)" />
     </Target>
 
+    <!--
+      发布时补建 UI bundle。
+      背景：DeployWIP 会「清空 Mods\<mod> 再只复制 C# 产物（dll/pdb/native）」，
+      而 .mjs 与 images/ 是 npm 构建写到部署目录的 → 只跑 dotnet publish 会发布出「没有 UI」的包
+      （0.1.0 就是这样发出去的：订阅端的包只有 dll，面板不出现）。
+      因此仅在发布流程里（ModPublisherCommand 非空）于 DeployWIP 之后重新打包 UI。
+    -->
+    <Target Name="SSPBuildUIForPublish" AfterTargets="DeployWIP" Condition="'$(ModPublisherCommand)' != ''">
+        <Error Condition="'$(CSII_USERDATAPATH)' == ''" Text="CSII_USERDATAPATH is not set; cannot build UI into the deploy folder." />
+        <Exec Command="npm run build" WorkingDirectory="$(MSBuildThisFileDirectory)..\ssp-ui" StandardOutputImportance="low" />
+    </Target>
+
 </Project>
