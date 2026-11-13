@@ -47,8 +47,8 @@ namespace StaticSceneryPloppables.Systems
         // 供 UISystem 读取的进程级目录
         public static readonly List<CatalogEntry> Catalog = new List<CatalogEntry>();
 
-        /// <summary>剥离版 prefab 名 → 已本地化的原版建筑名（用于补 Assets.NAME 词条）。</summary>
-        public static readonly Dictionary<string, string> PrefabDisplayNames = new Dictionary<string, string>();
+        /// <summary>剥离版 prefab 名 → 原版 prefab 的 titleId（用于补 Assets.NAME 词条，切换语言时可重新解析）。</summary>
+        public static readonly Dictionary<string, string> PrefabTitleIds = new Dictionary<string, string>();
         public static bool BuildComplete { get; private set; }
         public static int TotalCandidates { get; private set; }
 
@@ -121,7 +121,7 @@ namespace StaticSceneryPloppables.Systems
                 Mod.log.Warn($"[SSP] BUILD COMPLETE: {Catalog.Count} entries in catalog, build took {m_BuildSw?.ElapsedMilliseconds ?? 0}ms");
                 LogIconSummary();
                 // 给剥离版 prefab 补 Assets.NAME[...] 词条（否则信息面板/提示显示原始 key）
-                Localization.PrefabNamePatcher.Apply(PrefabDisplayNames);
+                Localization.PrefabNamePatcher.SetMapping(PrefabTitleIds);
             }
             else if (Catalog.Count % 500 < BatchSize)
             {
@@ -203,9 +203,13 @@ namespace StaticSceneryPloppables.Systems
             entry.Building = stripped; // 直接放置用（与 Find It 同源：ActivatePrefabTool）
 
             // 信息面板/悬停提示按 "Assets.NAME[prefabName]" 查字典，先把我们的名字映射到原版名称
-            if (!PrefabDisplayNames.ContainsKey(stripped.name))
+            if (!PrefabTitleIds.ContainsKey(stripped.name))
             {
-                PrefabDisplayNames[stripped.name] = string.IsNullOrEmpty(entry.Name) ? source.name : entry.Name;
+                string titleId = TitleIdOf(source);
+                if (!string.IsNullOrEmpty(titleId))
+                {
+                    PrefabTitleIds[stripped.name] = titleId;
+                }
             }
 
             // 等级去冗余只影响「列表可见性」：2 级同 1 级外观、4 级同 3 级，故列表只收 1/3/5。
@@ -336,6 +340,24 @@ namespace StaticSceneryPloppables.Systems
             }
 
             return (source.name ?? "").Replace('_', ' ');
+        }
+
+        /// <summary>取原版建筑的 titleId（如 Assets.NAME[EU_CommercialLow01_L2_5x6]）。</summary>
+        private string TitleIdOf(BuildingPrefab source)
+        {
+            try
+            {
+                if (m_PrefabSystem.TryGetEntity(source, out var entity))
+                {
+                    m_PrefabUISystem.GetTitleAndDescription(entity, out var titleId, out _);
+                    return titleId;
+                }
+            }
+            catch
+            {
+            }
+
+            return null;
         }
 
         private void LoadConfig()

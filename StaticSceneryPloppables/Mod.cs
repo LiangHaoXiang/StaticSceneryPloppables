@@ -39,6 +39,9 @@ namespace StaticSceneryPloppables
                 var lm = GameManager.instance?.localizationManager;
                 if (lm != null)
                 {
+                    // 建筑名（Assets.NAME[...]）的词条在语言切换时需要重新注入
+                    Localization.PrefabNamePatcher.Attach(lm);
+
                     var langs = (Localization.LocaleSSP.Lang[])System.Enum.GetValues(typeof(Localization.LocaleSSP.Lang));
                     var known = new System.Collections.Generic.HashSet<string>();
                     foreach (var lang in langs)
