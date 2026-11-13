@@ -73,4 +73,19 @@
         <None Include="$(ModTargetsFile)" Link="Properties\Mod.targets"/>
     </ItemGroup>
 
+    <!--
+      安全闸门：游戏运行时禁止构建/发布。
+      工具链的 DeployWIP 会「先清空 Mods\StaticSceneryPloppables，再复制新文件」；
+      游戏运行时 DLL 被锁 → 复制失败，但目录已清空 → 留下缺主 dll/缺 images 的部署
+      （症状：面板无条目、存档中已摆放建筑变白模）。
+      放在 csproj 里是为了覆盖 build.cmd 之外的入口（dotnet build / dotnet publish / IDE）。
+    -->
+    <Target Name="SSPEnsureGameNotRunning" BeforeTargets="BeforeBuild;BeforePublish" Condition="'$(SSP_SkipGameGuard)' != 'true'">
+        <Exec Command="tasklist /FI &quot;IMAGENAME eq Cities2.exe&quot; /NH" ConsoleToMsBuild="true" IgnoreExitCode="true" StandardOutputImportance="low">
+            <Output TaskParameter="ConsoleOutput" PropertyName="SSP_TaskListOutput" />
+        </Exec>
+        <Error Condition="$(SSP_TaskListOutput.Contains('Cities2.exe'))"
+               Text="Cities2.exe is running. Close the game before building/publishing, otherwise the deploy step wipes Mods\StaticSceneryPloppables and fails to restore the dll. (Set /p:SSP_SkipGameGuard=true to bypass.)" />
+    </Target>
+
 </Project>

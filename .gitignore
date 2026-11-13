@@ -6,3 +6,5 @@ Library/
 
 ssp-ui/node_modules/
 ssp-ui/build/
+
+dist/
