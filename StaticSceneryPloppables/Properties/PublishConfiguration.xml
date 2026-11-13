@@ -1,0 +1,75 @@
+<Publish>
+	<!--Id: leave empty for the first upload; PDX fills it when updating an existing mod-->
+	<ModId Value="" />
+	<!--Name shown to players-->
+	<DisplayName Value="Static Scenery Ploppables" />
+	<!--One-line summary-->
+	<ShortDescription Value="Plop any vanilla zoned building as a property-free scenery piece. Lot surfaces and randomized decorations (trees, benches, planters, bins) come with it, exactly like the game does it." />
+	<!--Long description: minimal Markdown subset-->
+	<LongDescription>
+# Static Scenery Ploppables
+
+Turn **any** vanilla zoned building into a **static, property-free scenery piece** you can place anywhere - no zoning requirements, no simulation load.
+
+## What it does
+
+- Browse all 2000+ vanilla zoned buildings in a Find It-style panel (search, zone tabs, filters for density / level / width / depth).
+- Click an entry and place it. The building is placed **with its vanilla lot surface and its randomized surroundings** - trees, benches, planters, bins, poles.
+- Every placement rolls its own decoration variant using the game's own randomization, so no two placements are identical.
+- The result is a pure shell: **no residents, no jobs, no households, no companies, no simulation cost**.
+
+## Typical uses
+
+- Decorate districts with buildings the zoning system would never allow.
+- Build back-lot scenery, alley filler, industrial parks, waterfront clutter.
+- Keep a city's look while freeing the lots from simulation.
+
+## Compatibility and safety
+
+- Decorations are placed **once**, at placement time. If a decoration prefab is missing in your city (e.g. DLC you do not own), it is simply skipped.
+- Relocation (the vanilla relocate tool) and bulldozing clean up the lot surfaces correctly.
+- Removing the mod is safe: placed objects reference vanilla prefabs, so saves load with unknown-prefab warnings rather than breakage.
+- No dependencies on other mods. Works alongside Find It, Move It, Anarchy and ctrlC.
+
+## Localization
+
+Panel text follows your game language: English, Simplified Chinese, Traditional Chinese, Deutsch, Francais, Espanol, Portugues (BR), Russian, Polski, Japanese, Korean. Other languages fall back to English.
+
+## Credits
+
+Implementation learned from these open-source mods and community docs (approach reference only, no bundled code):
+
+- Find It (JadHajjar) - panel UX and the `ToolSystem.ActivatePrefabTool` placement path: https://github.com/JadHajjar/FindIt-CSII
+- ctrlC (jk1422) - asset-stamp area copying and toolbar entry pattern: https://github.com/jk1422/ctrlC
+- Move It (Quboid) - project and build/deploy layout conventions: https://github.com/Quboid/CS2-MoveIt
+- Better Bulldozer (yenyang) - safe removal of building-owned sub-elements (`DeleteInXFrames` plus barrier `Deleted`): https://github.com/yenyang/BetterBulldozer
+- Plop the Growables (algernon-A) - confirmation that CS2 supports placing growables directly, which led to dropping asset stamps: https://github.com/algernon-A/PlopTheGrowables
+- cs2-modding-guide (BrokeAssSoftware) - verified rules for sub-element removal: https://github.com/BrokeAssSoftware/cs2-modding-guide
+- Cities Skylines 2 Modding Guide (ps1ke) - API reference: https://ps1ke.github.io/Cities-Skylines-2-Modding-Guide/
+
+Source code: https://github.com/LiangHaoXiang/StaticSceneryPloppables
+	</LongDescription>
+	<!--Thumbnail: relative path inside the project; the publisher uploads it-->
+	<Thumbnail Value="assets/publish/thumbnail.png" />
+	<!--Screenshots: add in-game shots later, e.g. Value="assets/publish/screenshot-01.png"-->
+	<Screenshot Value="" />
+	<!--Tags-->
+	<Tag Value="Code Mod" />
+	<Tag Value="Tools" />
+	<!--Forum thread link (optional)-->
+	<ForumLink Value="" />
+	<!--Version-->
+	<ModVersion Value="0.1.0" />
+	<!--Recommended base game version-->
+	<GameVersion Value="1.6.*" />
+	<!--Dependencies (optional)-->
+	<Dependency Id="" />
+	<!--Required DLC (optional)-->
+	<RequiredDLC Value="" />
+	<!--Change log-->
+	<ChangeLog Value="0.1.0: first public build - full vanilla zoned building catalog, Find It-style panel with search/zone/density/level/size filters, lot surfaces and randomized vanilla decorations, 11-language UI." />
+	<!--External link (GitHub)-->
+	<ExternalLink Type="GitHub" Url="https://github.com/LiangHaoXiang/StaticSceneryPloppables" />
+	<!--Visibility: Public / Private / Unlisted-->
+	<AccessLevel Value="Public" />
+</Publish>
