@@ -1,0 +1,8 @@
+bin/
+obj/
+.vs/
+*.user
+Library/
+
+ssp-ui/node_modules/
+ssp-ui/build/
