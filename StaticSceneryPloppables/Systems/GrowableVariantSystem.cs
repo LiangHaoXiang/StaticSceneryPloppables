@@ -46,6 +46,9 @@ namespace StaticSceneryPloppables.Systems
 
         // 供 UISystem 读取的进程级目录
         public static readonly List<CatalogEntry> Catalog = new List<CatalogEntry>();
+
+        /// <summary>剥离版 prefab 名 → 已本地化的原版建筑名（用于补 Assets.NAME 词条）。</summary>
+        public static readonly Dictionary<string, string> PrefabDisplayNames = new Dictionary<string, string>();
         public static bool BuildComplete { get; private set; }
         public static int TotalCandidates { get; private set; }
 
@@ -117,6 +120,8 @@ namespace StaticSceneryPloppables.Systems
                 m_BuildSw?.Stop();
                 Mod.log.Warn($"[SSP] BUILD COMPLETE: {Catalog.Count} entries in catalog, build took {m_BuildSw?.ElapsedMilliseconds ?? 0}ms");
                 LogIconSummary();
+                // 给剥离版 prefab 补 Assets.NAME[...] 词条（否则信息面板/提示显示原始 key）
+                Localization.PrefabNamePatcher.Apply(PrefabDisplayNames);
             }
             else if (Catalog.Count % 500 < BatchSize)
             {
@@ -196,6 +201,12 @@ namespace StaticSceneryPloppables.Systems
             // ② 目录条目（不再创建图章：放置已改为「直接放剥离建筑」，图章纯属载入开销）
             var entry = BuildEntry(source, null);
             entry.Building = stripped; // 直接放置用（与 Find It 同源：ActivatePrefabTool）
+
+            // 信息面板/悬停提示按 "Assets.NAME[prefabName]" 查字典，先把我们的名字映射到原版名称
+            if (!PrefabDisplayNames.ContainsKey(stripped.name))
+            {
+                PrefabDisplayNames[stripped.name] = string.IsNullOrEmpty(entry.Name) ? source.name : entry.Name;
+            }
 
             // 等级去冗余只影响「列表可见性」：2 级同 1 级外观、4 级同 3 级，故列表只收 1/3/5。
             // ★ prefab 必须为所有等级都注册——存档里可能已经放着 L2/L4 的建筑，
