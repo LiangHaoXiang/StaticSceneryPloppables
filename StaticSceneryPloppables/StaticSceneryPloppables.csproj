@@ -98,6 +98,11 @@
     <Target Name="SSPBuildUIForPublish" AfterTargets="DeployWIP" Condition="'$(ModPublisherCommand)' != ''">
         <Error Condition="'$(CSII_USERDATAPATH)' == ''" Text="CSII_USERDATAPATH is not set; cannot build UI into the deploy folder." />
         <Exec Command="npm run build" WorkingDirectory="$(MSBuildThisFileDirectory)..\ssp-ui" StandardOutputImportance="low" />
+        <!-- 硬校验：发布包必须带 UI，否则订阅端看不到入口图标 -->
+        <Error Condition="!Exists('$(DeployDir)\$(AssemblyName).mjs')"
+               Text="UI bundle missing after npm build: $(DeployDir)\$(AssemblyName).mjs — publishing now would ship a mod without its panel." />
+        <Error Condition="!Exists('$(DeployDir)\images\ssp-icon.svg')"
+               Text="Toolbar icon missing after npm build: $(DeployDir)\images\ssp-icon.svg" />
     </Target>
 
 </Project>

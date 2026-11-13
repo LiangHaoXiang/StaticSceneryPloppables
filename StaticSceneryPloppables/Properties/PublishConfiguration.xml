@@ -63,7 +63,7 @@ Turn **any** vanilla zoned building into a **static, property-free scenery piece
 	<!--Forum thread link (optional)-->
 	<ForumLink Value="" />
 	<!--Version-->
-	<ModVersion Value="0.1.1" />
+	<ModVersion Value="0.1.2" />
 	<!--Recommended base game version-->
 	<GameVersion Value="1.6.*" />
 	<!--Dependencies (optional)-->
@@ -71,7 +71,7 @@ Turn **any** vanilla zoned building into a **static, property-free scenery piece
 	<!--Required DLC (optional)-->
 	<RequiredDLC Value="" />
 	<!--Change log-->
-	<ChangeLog Value="0.1.1: fix - the 0.1.0 package shipped without the UI bundle (panel did not load); everything else is unchanged.&#10;0.1.0: first public build - full vanilla zoned building catalog, Find It-style panel with search/zone/density/level/size filters, lot surfaces and randomized vanilla decorations, 11-language UI." />
+	<ChangeLog Value="0.1.2: fix - the UI bundle (.mjs + images) is now guaranteed to be inside the package; without it the toolbar entry and panel were missing.&#10;0.1.1: metadata update (bilingual description).&#10;0.1.0: first public build - full vanilla zoned building catalog, Find It-style panel with search/zone/density/level/size filters, lot surfaces and randomized vanilla decorations, 11-language UI." />
 	<!--External link (GitHub)-->
 	<ExternalLink Type="GitHub" Url="https://github.com/LiangHaoXiang/StaticSceneryPloppables" />
 	<!--Visibility: Public / Private / Unlisted-->
