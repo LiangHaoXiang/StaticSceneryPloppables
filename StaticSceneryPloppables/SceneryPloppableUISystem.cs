@@ -22,6 +22,7 @@ namespace StaticSceneryPloppables
         private GetterValueBinding<string> m_EventBinding;
         private bool m_CatalogPushed;
         private string m_PushedEvent = string.Empty;
+        private bool m_PanelVisible;
         private SceneryPlacementTool m_Tool;
         private bool m_ToolWasActive;
 
@@ -39,6 +40,8 @@ namespace StaticSceneryPloppables
             // 注：语言由游戏本地化字典提供（LocaleSSP + AddSource），筛选/排序由前端完成，
             // 因此不再需要 ssp.lang / ssp.setFilter / ssp.search / ssp.resetOffset。
             AddBinding(new TriggerBinding<int>("ssp", "select", Select));
+            // 面板挂载/卸载上报：面板关闭时不再推送 uievent（否则 UI 侧没有 handler，会刷 WARN）
+            AddBinding(new TriggerBinding<bool>("ssp", "panelVisible", visible => { m_PanelVisible = visible; }));
             AddBinding(new TriggerBinding("ssp", "closeTool", () =>
             {
                 World.GetExistingSystemManaged<SceneryPlacementTool>()?.DeactivateTool();
@@ -72,6 +75,14 @@ namespace StaticSceneryPloppables
 
             // C# 侧事件 → 推给 UI（面板据此关闭）；推送后清空，保证下一次同类事件仍能触发
             string pending = Tools.SceneryPlacementTool.PendingUIEvent;
+            if (pending.Length != 0 && !m_PanelVisible)
+            {
+                // 面板已关闭：没有订阅者，直接丢弃，避免 "no handler" 告警
+                Tools.SceneryPlacementTool.PendingUIEvent = string.Empty;
+                m_PushedEvent = string.Empty;
+                return;
+            }
+
             if (pending != m_PushedEvent)
             {
                 m_PushedEvent = pending;

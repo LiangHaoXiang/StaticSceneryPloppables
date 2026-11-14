@@ -282,7 +282,12 @@ function PanelBody(props: {
         const engine = (window as any).engine;
         engine.on("ssp.uievent.update", onUIEvent);
         engine.trigger("ssp.uievent.subscribe");
-        return () => { engine.off("ssp.uievent.update", onUIEvent); };
+        // 上报面板可见性：关闭后 C# 侧不再推送 uievent（避免 "no handler" 告警）
+        engine.trigger("ssp.panelVisible", true);
+        return () => {
+            engine.trigger("ssp.panelVisible", false);
+            engine.off("ssp.uievent.update", onUIEvent);
+        };
     }, [props.onClose]);
 
     // 工具未激活时 Esc 也应关闭面板（并尽量拦截原版暂停菜单）
