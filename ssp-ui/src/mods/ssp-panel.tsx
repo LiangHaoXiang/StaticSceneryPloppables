@@ -13,10 +13,12 @@ import zoneGeneric from "./icons/zone-generic.svg";
 
 /* ---------- 类型 ---------- */
 interface CatalogItem {
-    i: number; n: string; ic: string; si: boolean;
+    i: number; n: string; rn: string; ic: string; si: boolean;
     z: string; d: string; l: number; w: number; dp: number;
+    /** 预拼接的小写搜索串（n + rn）：搜索时不再对 2000 条逐次 toLowerCase（#12） */
+    sb: string;
 }
-interface ResultsPayload { total: number; token: number; complete: boolean; items: CatalogItem[]; matched: number; hasMore: boolean; }
+interface CatalogPayload { total: number; complete: boolean; items: any[]; }
 interface FilterState { z: string; d: string; l: number; w: number; dp: number; }
 
 const ZONE_TABS: { key: string; labelKey: string }[] = [
@@ -49,8 +51,6 @@ const FALLBACK_EN: Record<string, string> = {
     Filters: "Filters", FiltersActive: "Filters ●",
     All: "All", Residential: "Residential", Commercial: "Commercial", Industrial: "Industrial", Office: "Office",
     Matched: "Matched {0} / {1} buildings",
-    LoadingItems: "Matched {0} / {1} buildings (loading {1}/{2})",
-    LoadingMore: "Loaded {0}/{1}, loading the rest…",
     Catalog: "Building catalog… {0} so far",
     Rows: "Scroll to browse (rows {0}-{1} of {2})",
     Hint: "Click an item to place. Left-click to keep placing, right-click/Esc to exit.",
@@ -93,36 +93,35 @@ const GRID_W = PANEL_W - 20 - 14; // 去掉内边距 20 与滚动条 8+间距 6
 // 固定格子宽度：最后一行不足 5 个时也不允许被拉宽（保持与文本换行格子同样大小）
 const TILE_W = (GRID_W - (COLS - 1) * GAP) / COLS;
 
-/* ---------- 模块级持久状态：面板关闭重开不丢（查询 + 已载入结果） ---------- */
+/* ---------- 模块级持久状态：面板关闭重开不丢（搜索词 + 筛选 + 整份目录缓存） ---------- */
 const persisted = {
     query: "" as string,
     filter: { z: "", d: "", l: 0, w: 0, dp: 0 } as FilterState,
-    // 缓存只跟「搜索词」绑定；页签/筛选是纯前端过滤，不作废缓存
-    key: "" as string,
-    token: 0,
+    // 目录只由 C# 推送一次；这里缓存整份，重开面板零等待
     items: [] as CatalogItem[],
-    matched: 0,
     total: 0,
     complete: false,
-    hasMore: false,
 };
 
-/** 查询变化时作废缓存 */
-function invalidateResults() {
-    persisted.key = "";
-    persisted.items = [];
-    persisted.matched = 0;
-    persisted.hasMore = false;
-    persisted.token = 0;
+/** 目录原始条目 → UI 条目（预拼小写搜索串，避免每次按键对 2000 条反复 toLowerCase） */
+function toItem(raw: any): CatalogItem {
+    const name = raw?.n ?? "";
+    const rawName = raw?.rn ?? "";
+    return {
+        i: raw?.i ?? 0, n: name, rn: rawName, ic: raw?.ic ?? "", si: !!raw?.si,
+        z: raw?.z ?? "", d: raw?.d ?? "", l: raw?.l ?? 0, w: raw?.w ?? 0, dp: raw?.dp ?? 0,
+        sb: (name + "\n" + rawName).toLowerCase(),
+    };
 }
 
-/** 前端筛选：页签(z) + 密度(d) + 等级(l) + 面宽(w) + 进深(dp) */
-function matchesFilter(it: CatalogItem, f: FilterState): boolean {
+/** 前端筛选：搜索词 + 页签(z) + 密度(d) + 等级(l) + 面宽(w) + 进深(dp) */
+function matchesFilter(it: CatalogItem, f: FilterState, query: string): boolean {
     if (f.z && it.z !== f.z) return false;
     if (f.d && it.d !== f.d) return false;
     if (f.l > 0 && it.l !== f.l) return false;
     if (f.w > 0 && it.w !== f.w) return false;
     if (f.dp > 0 && it.dp !== f.dp) return false;
+    if (query && it.sb.indexOf(query) < 0) return false;
     return true;
 }
 
@@ -233,86 +232,44 @@ function PanelBody(props: {
     const TextInput = useVanillaTextInput();
     const L = useText(); // 本地化：走游戏本地化字典
     const filter = props.filter;
-    // 缓存只跟搜索词绑定：页签/筛选是前端过滤，永远不会触发重新拉取
-    const key = persisted.query;
-    const cacheValid = persisted.key === key && persisted.items.length > 0;
+    // 目录由 C# 一次性推送；重开面板直接用模块级缓存，零等待、无请求
+    const [items, setItems] = React.useState<CatalogItem[]>(persisted.items);
+    const [total, setTotal] = React.useState(persisted.total);
+    const [complete, setComplete] = React.useState(persisted.complete);
     const [query, setQuery] = React.useState(persisted.query);
-    const [items, setItems] = React.useState<CatalogItem[]>(cacheValid ? persisted.items : []);
-    const [matched, setMatched] = React.useState(cacheValid ? persisted.matched : 0);
-    const [total, setTotal] = React.useState(cacheValid ? persisted.total : 0);
-    const [complete, setComplete] = React.useState(cacheValid ? persisted.complete : false);
-    const [hasMore, setHasMore] = React.useState(cacheValid ? persisted.hasMore : false);
-    const lastTokenRef = React.useRef<number>(cacheValid ? persisted.token : -1);
-    const timerRef = React.useRef<any>(null);
-    const loadingRef = React.useRef(false);
-    const askedRef = React.useRef<Set<number>>(new Set([0]));
 
     React.useEffect(() => {
+        const engine = (window as any).engine;
+        let timer: any = null;
+        const stop = () => { if (timer) { clearInterval(timer); timer = null; } };
+
         const onUpdate = (payload: string) => {
             try {
-                const data: ResultsPayload = JSON.parse(payload);
-                const newTotal = data?.total ?? 0;
-                const newMatched = data?.matched ?? 0;
-                const newComplete = !!data?.complete;
-                const newHasMore = !!data?.hasMore;
-                setTotal(newTotal);
-                setComplete(newComplete);
-                setMatched(newMatched);
-                setHasMore(newHasMore);
-                persisted.total = newTotal;
-                persisted.matched = newMatched;
-                persisted.complete = newComplete;
-                persisted.hasMore = newHasMore;
-                const incoming = data?.items ?? [];
-                const token = data?.token ?? 0;
-                const isReset = token !== lastTokenRef.current; // 新一次搜索 → 重置列表
-                lastTokenRef.current = token;
-                persisted.token = token;
-                if (isReset) askedRef.current = new Set([0]);
-                setItems((prev) => {
-                    let next: CatalogItem[];
-                    if (isReset || !prev.length) next = incoming;
-                    else if (incoming.length && incoming[0].i > (prev[prev.length - 1]?.i ?? -1)) {
-                        next = [...prev, ...incoming]; // 分页追加
-                    } else {
-                        next = prev; // 迟到的过期分页响应，丢弃
-                    }
-
-                    persisted.items = next; // 写回模块级缓存，关面板再开即时可用
-                    return next;
-                });
+                const data: CatalogPayload = JSON.parse(payload);
+                const list = (data?.items ?? []).map(toItem);
+                const done = !!data?.complete;
+                setItems(list);
+                setTotal(data?.total ?? list.length);
+                setComplete(done);
+                persisted.items = list;
+                persisted.total = data?.total ?? list.length;
+                persisted.complete = done;
+                if (done) stop();
             } catch (e) {
-                console.error("[SSP] results parse failed: " + e);
-            } finally {
-                loadingRef.current = false;
+                console.error("[SSP] catalog parse failed: " + e);
             }
         };
-        const engine = (window as any).engine;
-        engine.on("ssp.results.update", onUpdate);
-        engine.trigger("ssp.results.subscribe");
-        if (!cacheValid) {
-            // 没有可用缓存 → 从第一页开始拉
-            persisted.key = key;
-            persisted.items = [];
-            persisted.token = 0;
-            engine.trigger("ssp.search", persisted.query, 0);
-        } else {
-            // 命中缓存：把 C# 侧分页游标归零，后续推送不会从旧 offset 开始
-            engine.trigger("ssp.resetOffset");
-        }
-        return () => { engine.off("ssp.results.update", onUpdate); };
-    }, []);
 
-    // 自动把剩余分页全部拉齐（不再需要「加载更多」按钮）；一次只追一页，避免刷屏
-    React.useEffect(() => {
-        if (!hasMore || items.length === 0 || items.length >= matched || loadingRef.current) return;
-        if (askedRef.current.has(items.length)) return; // 同一 offset 不重复请求，防死循环
-        askedRef.current.add(items.length);
-        loadingRef.current = true;
-        const engine = (window as any).engine;
-        const t = setTimeout(() => engine.trigger("ssp.search", persisted.query, items.length), 40);
-        return () => clearTimeout(t);
-    }, [hasMore, items.length, matched]);
+        engine.on("ssp.catalog.update", onUpdate);
+        engine.trigger("ssp.catalog.subscribe");
+        // 目录仍在构建（约 4 秒）：每 400ms 重新订阅，直到拿到 complete=true 为止
+        timer = setInterval(() => {
+            if (persisted.complete) { stop(); return; }
+            engine.trigger("ssp.catalog.subscribe");
+        }, 400);
+
+        return () => { stop(); engine.off("ssp.catalog.update", onUpdate); };
+    }, []);
 
     // Esc（工具取消）时由 C# 推事件关闭面板
     React.useEffect(() => {
@@ -345,17 +302,10 @@ function PanelBody(props: {
         };
     }, [props.onClose]);
 
-    const doSearch = (offset: number) => {
-        (window as any).engine.trigger("ssp.search", query, offset);
-    };
-
+    // 搜索纯前端：整份目录已在内存里，打字即时过滤，不触发任何 C# 调用
     const onChange = (q: string) => {
         setQuery(q);
         persisted.query = q;
-        invalidateResults(); // 查询变了，缓存作废
-        if (timerRef.current) clearTimeout(timerRef.current);
-        // 直接传 q：闭包里的 query 还没随 setState 更新，用它会让搜索慢一个字符
-        timerRef.current = setTimeout(() => (window as any).engine.trigger("ssp.search", q, 0), 250);
     };
 
     const inputEl = TextInput ? (
@@ -375,7 +325,10 @@ function PanelBody(props: {
 
     const filterActive = filter.z || filter.d || filter.l || filter.w || filter.dp;
     // 页签/筛选纯前端过滤：不重新请求、不等待，切换即时生效
-    const visible = React.useMemo(() => items.filter((it) => matchesFilter(it, filter)), [items, filter]);
+    const needle = query.trim().toLowerCase();
+    const visible = React.useMemo(
+        () => items.filter((it) => matchesFilter(it, filter, needle)),
+        [items, filter, needle]);
 
     // ★ 窗口化渲染（Find It 同款）：DOM 里永远只有 2 行可见 + 1 行缓冲
     const rows = React.useMemo(() => chunk(visible, COLS), [visible]);
@@ -472,9 +425,7 @@ function PanelBody(props: {
 
                 <div style={{ color: "#7d9bb5", fontSize: "11rem" }}>
                     {complete
-                        ? (hasMore
-                            ? L("LoadingItems", visible.length, items.length, matched)
-                            : L("Matched", visible.length, items.length))
+                        ? L("Matched", visible.length, items.length)
                         : L("Catalog", total)}
                 </div>
 
@@ -529,9 +480,7 @@ function PanelBody(props: {
                 </div>
 
                 <div style={{ color: "#7d9bb5", fontSize: "10rem" }}>
-                    {hasMore
-                        ? L("LoadingMore", items.length, matched)
-                        : L("Rows", Math.min(totalRows, firstRow + 1), Math.min(totalRows, firstRow + VISIBLE_ROWS), totalRows)}
+                    {L("Rows", Math.min(totalRows, firstRow + 1), Math.min(totalRows, firstRow + VISIBLE_ROWS), totalRows)}
                 </div>
                 <div style={{ color: "#7d9bb5", fontSize: "10rem" }}>{L("Hint")}</div>
             </div>

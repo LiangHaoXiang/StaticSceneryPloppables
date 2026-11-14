@@ -8,6 +8,14 @@
     </PropertyGroup>
 
     <!--
+      诊断代码（实体树 dump、分段计时日志）默认不编译。
+      需要排障时：dotnet build -c Release /p:SspDiagnostics=true
+    -->
+    <PropertyGroup Condition="'$(SspDiagnostics)' == 'true'">
+        <DefineConstants>$(DefineConstants);SSP_DIAG</DefineConstants>
+    </PropertyGroup>
+
+    <!--
       注：不能设 DebugType=none —— Unity Entities 的 ILPP 读 assembly 时需要 pdb
       （AssemblyDefinitionFor 会 NullReference）。所以编译期照常产 pdb，
       只在「部署目录」把它删掉（见下方 SSPStripSymbolsFromDeploy）。

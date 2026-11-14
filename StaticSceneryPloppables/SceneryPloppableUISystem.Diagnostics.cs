@@ -4,6 +4,10 @@ using Game.Prefabs;
 using Unity.Collections;
 using Unity.Entities;
 
+// 诊断代码默认不参与编译：需要排障时用 dotnet build -c Release /p:SspDiagnostics=true
+// （csproj 里会定义 SSP_DIAG 常量）。发布构建因此不含这些反射/实体遍历代码。
+#if SSP_DIAG
+
 namespace StaticSceneryPloppables
 {
     /// <summary>
@@ -339,3 +343,4 @@ namespace StaticSceneryPloppables
         }
     }
 }
+#endif

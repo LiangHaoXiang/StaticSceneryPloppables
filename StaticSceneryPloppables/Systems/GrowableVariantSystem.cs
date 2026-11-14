@@ -43,6 +43,12 @@ namespace StaticSceneryPloppables.Systems
             public int Level;        // 1-5
             public int LotW;         // 面宽（格）
             public int LotD;         // 进深（格）
+
+            // ---- 序列化预计算（构建期算一次，避免每次推送重复 Escape/Regex）----
+            public bool NameHasInfo;     // 名字里已含 Lx/宽x深 → UI 不再显示小字
+            public string NameJson;      // 已转义的 JSON 字符串内容
+            public string RawNameJson;
+            public string IconJson;
         }
 
         // 供 UISystem 读取的进程级目录
@@ -61,6 +67,10 @@ namespace StaticSceneryPloppables.Systems
         /// <summary>目录构建计时（定位载入耗时用）。</summary>
         private System.Diagnostics.Stopwatch m_BuildSw;
         private int m_NextProgressLog = 500;
+        // 分段计时（#24）：只在 DiagnosticsEnabled 时输出，平时仅累加几次 double 运算
+        private double m_CloneMs;
+        private double m_AddMs;
+        private double m_EntryMs;
         private readonly List<BuildingPrefab> m_Pending = new List<BuildingPrefab>();
 
         private bool m_Enabled = true;
@@ -130,6 +140,11 @@ namespace StaticSceneryPloppables.Systems
                 LogIconSummary();
                 // 给剥离版 prefab 补 Assets.NAME[...] 词条（否则信息面板/提示显示原始 key）
                 Localization.PrefabNamePatcher.SetMapping(PrefabTitleIds);
+
+                if (Mod.DiagnosticsEnabled)
+                {
+                    Mod.log.Warn($"[SSP] build breakdown: clone={m_CloneMs:F0}ms, addPrefab={m_AddMs:F0}ms, entry+name={m_EntryMs:F0}ms");
+                }
             }
             else if (Catalog.Count >= m_NextProgressLog)
             {
@@ -207,7 +222,12 @@ namespace StaticSceneryPloppables.Systems
             }
 
             // ① 剥离版
+            var phaseSw = System.Diagnostics.Stopwatch.StartNew();
             var stripped = CreateStrippedBuilding(source, StrippedPrefix + source.name);
+            if (stripped != null)
+            {
+                m_CloneMs += phaseSw.Elapsed.TotalMilliseconds;
+            }
             if (stripped == null)
             {
                 return;
@@ -215,11 +235,13 @@ namespace StaticSceneryPloppables.Systems
 
             try
             {
+                phaseSw.Restart();
                 if (!m_PrefabSystem.AddPrefab(stripped, null, null, null))
                 {
                     return;
                 }
                 m_PrefabSystem.UpdatePrefab(stripped); // 排队下帧 PrefabUpdate 初始化
+                m_AddMs += phaseSw.Elapsed.TotalMilliseconds;
             }
             catch (System.Exception e)
             {
@@ -228,8 +250,10 @@ namespace StaticSceneryPloppables.Systems
             }
 
             // ② 目录条目（不再创建图章：放置已改为「直接放剥离建筑」，图章纯属载入开销）
+            phaseSw.Restart();
             var entry = BuildEntry(source, null);
             entry.Building = stripped; // 直接放置用（与 Find It 同源：ActivatePrefabTool）
+            m_EntryMs += phaseSw.Elapsed.TotalMilliseconds;
 
             // 信息面板/悬停提示按 "Assets.NAME[prefabName]" 查字典，先把我们的名字映射到原版名称
             if (!PrefabTitleIds.ContainsKey(stripped.name))
@@ -312,7 +336,7 @@ namespace StaticSceneryPloppables.Systems
                 // 元数据缺失不阻塞目录
             }
 
-            return new CatalogEntry
+            var entry = new CatalogEntry
             {
                 Stamp = stamp,
                 Name = LocalizedName(source),
@@ -324,6 +348,31 @@ namespace StaticSceneryPloppables.Systems
                 LotW = source.m_LotWidth,
                 LotD = source.m_LotDepth
             };
+
+            // 构建期一次算好：JSON 转义 + 「名字里是否已含等级/尺寸」
+            entry.NameJson = JsonEscape(entry.Name);
+            entry.RawNameJson = JsonEscape(entry.RawName);
+            entry.IconJson = JsonEscape(entry.IconUrl);
+            entry.NameHasInfo = System.Text.RegularExpressions.Regex.IsMatch(
+                entry.Name ?? string.Empty, @"(L\d|\d+x\d)");
+
+            return entry;
+        }
+
+        /// <summary>JSON 字符串转义（构建期执行一次，推送时直接拼接）。</summary>
+        private static string JsonEscape(string s)
+        {
+            if (string.IsNullOrEmpty(s))
+            {
+                return string.Empty;
+            }
+
+            if (s.IndexOf('\\') < 0 && s.IndexOf('"') < 0 && s.IndexOf('\n') < 0 && s.IndexOf('\r') < 0 && s.IndexOf('\t') < 0)
+            {
+                return s; // 绝大多数情况无需处理，直接复用原字符串
+            }
+
+            return s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t");
         }
 
         /// <summary>取 prefab 自带的 SVG 图标 URI（不做缩略图渲染）。</summary>
