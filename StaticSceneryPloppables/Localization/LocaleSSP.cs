@@ -35,6 +35,7 @@ namespace StaticSceneryPloppables.Localization
             "Matched", "LoadingItems", "LoadingMore", "Catalog", "Rows", "Hint",
             "FilterTitle", "Density", "Level", "Width", "Depth",
             "Low", "Medium", "High", "Cells", "FilterNote",
+            "MixedHousing", "Style", "European", "NorthAmerican",
         };
 
         private static readonly Dictionary<Lang, string[]> Values = new Dictionary<Lang, string[]>
@@ -54,6 +55,7 @@ namespace StaticSceneryPloppables.Localization
                 "Filters", "Density", "Level", "Width", "Depth",
                 "Low", "Medium", "High", "{0}",
                 "Applies on top of the search box; closing this panel keeps the selection.",
+                "Mixed Housing", "Style", "European", "North American",
             },
             [Lang.ZH_HANS] = new[]
             {
@@ -70,6 +72,7 @@ namespace StaticSceneryPloppables.Localization
                 "筛选", "密度", "等级", "面宽", "进深",
                 "低密度", "中密度", "高密度", "{0}格",
                 "与主面板搜索叠加生效；关闭筛选面板不影响已选条件。",
+                "混合型住宅", "风格", "欧美", "北美",
             },
             [Lang.ZH_HANT] = new[]
             {
@@ -86,6 +89,7 @@ namespace StaticSceneryPloppables.Localization
                 "篩選", "密度", "等級", "面寬", "進深",
                 "低密度", "中密度", "高密度", "{0}格",
                 "與主面板搜尋疊加生效；關閉篩選面板不影響已選條件。",
+                "混合型住宅", "風格", "歐美", "北美",
             },
             [Lang.DE] = new[]
             {
@@ -102,6 +106,7 @@ namespace StaticSceneryPloppables.Localization
                 "Filter", "Dichte", "Stufe", "Breite", "Tiefe",
                 "Niedrig", "Mittel", "Hoch", "{0}",
                 "Wirkt zusätzlich zur Suche; Schließen behält die Auswahl.",
+                "Gemischtwohnen", "Stil", "Europäisch", "Nordamerikanisch",
             },
             [Lang.FR] = new[]
             {
@@ -118,6 +123,7 @@ namespace StaticSceneryPloppables.Localization
                 "Filtres", "Densité", "Niveau", "Largeur", "Profondeur",
                 "Faible", "Moyenne", "Élevée", "{0}",
                 "S’applique en plus de la recherche ; fermer ce panneau conserve la sélection.",
+                "Logements mixtes", "Style", "Européen", "Nord-américain",
             },
             [Lang.ES] = new[]
             {
@@ -134,6 +140,7 @@ namespace StaticSceneryPloppables.Localization
                 "Filtros", "Densidad", "Nivel", "Anchura", "Profundidad",
                 "Baja", "Media", "Alta", "{0}",
                 "Se aplica junto a la búsqueda; cerrar este panel mantiene la selección.",
+                "Vivienda mixta", "Estilo", "Europeo", "Norteamericano",
             },
             [Lang.PT_BR] = new[]
             {
@@ -150,6 +157,7 @@ namespace StaticSceneryPloppables.Localization
                 "Filtros", "Densidade", "Nível", "Largura", "Profundidade",
                 "Baixa", "Média", "Alta", "{0}",
                 "Aplica-se junto à pesquisa; fechar este painel mantém a seleção.",
+                "Habitação mista", "Estilo", "Europeu", "Norte-americano",
             },
             [Lang.RU] = new[]
             {
@@ -166,6 +174,7 @@ namespace StaticSceneryPloppables.Localization
                 "Фильтры", "Плотность", "Уровень", "Ширина", "Глубина",
                 "Низкая", "Средняя", "Высокая", "{0}",
                 "Действует вместе с поиском; закрытие панели сохраняет выбор.",
+                "Смешанное жильё", "Стиль", "Европейский", "Североамериканский",
             },
             [Lang.PL] = new[]
             {
@@ -182,6 +191,7 @@ namespace StaticSceneryPloppables.Localization
                 "Filtry", "Gęstość", "Poziom", "Szerokość", "Głębokość",
                 "Niska", "Średnia", "Wysoka", "{0}",
                 "Działa razem z wyszukiwaniem; zamknięcie panelu zachowuje wybór.",
+                "Zabudowa mieszana", "Styl", "Europejski", "Północnoamerykański",
             },
             [Lang.JA] = new[]
             {
@@ -198,6 +208,7 @@ namespace StaticSceneryPloppables.Localization
                 "フィルター", "密度", "レベル", "間口", "奥行き",
                 "低密度", "中密度", "高密度", "{0}マス",
                 "検索と併用して適用されます。閉じても選択は保持されます。",
+                "複合住宅", "スタイル", "ヨーロッパ", "北米",
             },
             [Lang.KO] = new[]
             {
@@ -214,6 +225,7 @@ namespace StaticSceneryPloppables.Localization
                 "필터", "밀도", "레벨", "너비", "깊이",
                 "저밀도", "중밀도", "고밀도", "{0}칸",
                 "검색과 함께 적용됩니다. 패널을 닫아도 선택은 유지됩니다.",
+                "복합 주거", "스타일", "유럽", "북미",
             },
         };
 

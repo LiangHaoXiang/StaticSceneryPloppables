@@ -15,18 +15,29 @@ import zoneGeneric from "./icons/zone-generic.svg";
 interface CatalogItem {
     i: number; n: string; rn: string; ic: string; si: boolean;
     z: string; d: string; l: number; w: number; dp: number;
+    /** 混合型住宅（住宅 + 可售卖/可制造） */
+    mx: boolean;
+    /** 风格："EU" / "NA" / "" */
+    st: string;
     /** 预拼接的小写搜索串（n + rn）：搜索时不再对 2000 条逐次 toLowerCase（#12） */
     sb: string;
 }
 interface CatalogPayload { total: number; complete: boolean; items: any[]; }
-interface FilterState { z: string; d: string; l: number; w: number; dp: number; }
+interface FilterState { z: string; s: string; d: string; l: number; w: number; dp: number; }
 
 const ZONE_TABS: { key: string; labelKey: string }[] = [
     { key: "", labelKey: "All" },
     { key: "Residential", labelKey: "Residential" },
+    { key: "MixedHousing", labelKey: "MixedHousing" },
     { key: "Commercial", labelKey: "Commercial" },
-    { key: "Industrial", labelKey: "Industrial" },
     { key: "Office", labelKey: "Office" },
+    { key: "Industrial", labelKey: "Industrial" },
+];
+/** 风格筛选：欧美 / 北美（按 prefab 名前缀，C# 侧已归好类） */
+const STYLE_OPTS: { key: string; labelKey: string }[] = [
+    { key: "", labelKey: "All" },
+    { key: "EU", labelKey: "European" },
+    { key: "NA", labelKey: "NorthAmerican" },
 ];
 const DENSITY_OPTS = ["", "Low", "Medium", "High"];
 const DENSITY_LABEL = (L: LFn): Record<string, string> =>
@@ -54,7 +65,7 @@ const FALLBACK_EN: Record<string, string> = {
     Catalog: "Building catalog… {0} so far",
     Rows: "Scroll to browse (rows {0}-{1} of {2})",
     Hint: "Click an item to place. Left-click to keep placing, right-click/Esc to exit.",
-    FilterTitle: "Filters", Density: "Density", Level: "Level", Width: "Width", Depth: "Depth",
+    FilterTitle: "Filters", Style: "Style", Density: "Density", Level: "Level", Width: "Width", Depth: "Depth",
     Low: "Low", Medium: "Medium", High: "High", Cells: "{0}",
     FilterNote: "Applies on top of the search box; closing this panel keeps the selection.",
 };
@@ -96,7 +107,7 @@ const TILE_W = (GRID_W - (COLS - 1) * GAP) / COLS;
 /* ---------- 模块级持久状态：面板关闭重开不丢（搜索词 + 筛选 + 整份目录缓存） ---------- */
 const persisted = {
     query: "" as string,
-    filter: { z: "", d: "", l: 0, w: 0, dp: 0 } as FilterState,
+    filter: { z: "", s: "", d: "", l: 0, w: 0, dp: 0 } as FilterState,
     // 目录只由 C# 推送一次；这里缓存整份，重开面板零等待
     items: [] as CatalogItem[],
     total: 0,
@@ -110,13 +121,18 @@ function toItem(raw: any): CatalogItem {
     return {
         i: raw?.i ?? 0, n: name, rn: rawName, ic: raw?.ic ?? "", si: !!raw?.si,
         z: raw?.z ?? "", d: raw?.d ?? "", l: raw?.l ?? 0, w: raw?.w ?? 0, dp: raw?.dp ?? 0,
+        mx: !!raw?.mx, st: raw?.st ?? "",
         sb: (name + "\n" + rawName).toLowerCase(),
     };
 }
 
 /** 前端筛选：搜索词 + 页签(z) + 密度(d) + 等级(l) + 面宽(w) + 进深(dp) */
 function matchesFilter(it: CatalogItem, f: FilterState, query: string): boolean {
-    if (f.z && it.z !== f.z) return false;
+    // 「住宅」只显示纯住宅，「混合型住宅」只显示混合型（C# 已按 IsMixed 分类）
+    if (f.z === "Residential") { if (it.z !== "Residential" || it.mx) return false; }
+    else if (f.z === "MixedHousing") { if (it.z !== "Residential" || !it.mx) return false; }
+    else if (f.z && it.z !== f.z) return false;
+    if (f.s && it.st !== f.s) return false;
     if (f.d && it.d !== f.d) return false;
     if (f.l > 0 && it.l !== f.l) return false;
     if (f.w > 0 && it.w !== f.w) return false;
@@ -328,7 +344,7 @@ function PanelBody(props: {
         />
     );
 
-    const filterActive = filter.z || filter.d || filter.l || filter.w || filter.dp;
+    const filterActive = filter.z || filter.s || filter.d || filter.l || filter.w || filter.dp;
     // 页签/筛选纯前端过滤：不重新请求、不等待，切换即时生效
     const needle = query.trim().toLowerCase();
     const visible = React.useMemo(
@@ -341,7 +357,7 @@ function PanelBody(props: {
     const maxScroll = Math.max(0, totalRows - VISIBLE_ROWS);
     const [scrollIndex, setScrollIndex] = React.useState(0);
     // 页签/筛选/搜索变化 → 回到顶部
-    React.useEffect(() => { setScrollIndex(0); }, [filter.z, filter.d, filter.l, filter.w, filter.dp, query]);
+    React.useEffect(() => { setScrollIndex(0); }, [filter.z, filter.s, filter.d, filter.l, filter.w, filter.dp, query]);
     React.useEffect(() => {
         if (scrollIndex > maxScroll) setScrollIndex(maxScroll);
     }, [maxScroll]);
@@ -508,6 +524,13 @@ function FilterPanel(props: { filter: FilterState; apply: (next: FilterState) =>
     return (
         <Panel header={L("FilterTitle")} onClose={props.onClose} style={{ width: "470rem" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "6rem", padding: "10rem" }}>
+                <div style={{ display: "flex", gap: "6rem", alignItems: "center" }}>
+                    <span style={{ color: "#7d9bb5", fontSize: "11rem", width: "52rem" }}>{L("Style")}</span>
+                    {STYLE_OPTS.map((s) => (
+                        <Chip key={s.key} label={L(s.labelKey)} active={filter.s === s.key}
+                            onClick={() => apply({ ...filter, s: s.key })} />
+                    ))}
+                </div>
                 <div style={{ display: "flex", gap: "6rem", alignItems: "center" }}>
                     <span style={{ color: "#7d9bb5", fontSize: "11rem", width: "52rem" }}>{L("Density")}</span>
                     {DENSITY_OPTS.map((d) => (

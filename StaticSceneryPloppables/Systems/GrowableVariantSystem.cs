@@ -3,6 +3,7 @@ using System.IO;
 using System.Reflection;
 using Colossal.Entities;
 using Game;
+using Game.Economy;
 using Game.Prefabs;
 using Game.SceneFlow;
 using Unity.Collections;
@@ -49,6 +50,9 @@ namespace StaticSceneryPloppables.Systems
             public string NameJson;      // 已转义的 JSON 字符串内容
             public string RawNameJson;
             public string IconJson;
+            public bool IsSignature;     // 标志性建筑（当前不纳入目录，保留字段以支持排序第 6 级）
+            public bool IsMixed;         // 混合型住宅（住宅属性 + 可售卖/可制造）
+            public string Style;         // 风格："EU" / "NA" / ""（按 prefab 名前缀）
         }
 
         // 供 UISystem 读取的进程级目录
@@ -134,6 +138,8 @@ namespace StaticSceneryPloppables.Systems
 
             if (m_Pending.Count == 0)
             {
+                // 目录构建完成 → 按用户规则排序一次（UI 收到即最终顺序）
+                Catalog.Sort(CatalogComparer.Instance);
                 BuildComplete = true;
                 m_BuildSw?.Stop();
                 Mod.log.Warn($"[SSP] BUILD COMPLETE: {Catalog.Count} entries in catalog, build took {m_BuildSw?.ElapsedMilliseconds ?? 0}ms");
@@ -144,6 +150,7 @@ namespace StaticSceneryPloppables.Systems
                 if (Mod.DiagnosticsEnabled)
                 {
                     Mod.log.Warn($"[SSP] build breakdown: clone={m_CloneMs:F0}ms, addPrefab={m_AddMs:F0}ms, entry+name={m_EntryMs:F0}ms");
+                    LogSortSample();
                 }
             }
             else if (Catalog.Count >= m_NextProgressLog)
@@ -355,8 +362,245 @@ namespace StaticSceneryPloppables.Systems
             entry.IconJson = JsonEscape(entry.IconUrl);
             entry.NameHasInfo = System.Text.RegularExpressions.Regex.IsMatch(
                 entry.Name ?? string.Empty, @"(L\d|\d+x\d)");
+            entry.IsSignature = source.Has<SignatureBuilding>();
+
+            // 风格：原版 prefab 名以 EU_ / NA_ 前缀区分欧美/北美，其余归入「全部」
+            if (source.name.StartsWith("EU_"))
+            {
+                entry.Style = "EU";
+            }
+            else if (source.name.StartsWith("NA_"))
+            {
+                entry.Style = "NA";
+            }
+            else
+            {
+                entry.Style = "";
+            }
+
+            // 风格：优先用主题（ThemeObject.m_Theme），其次用 prefab 名 EU_/NA_ 前缀
+            if (entry.Style.Length == 0)
+            {
+                try
+                {
+                    if (source.TryGet<ThemeObject>(out var themeObject) && themeObject.m_Theme != null)
+                    {
+                        string themeName = themeObject.m_Theme.name ?? string.Empty;
+                        string themePrefix = themeObject.m_Theme.assetPrefix ?? string.Empty;
+                        if (themePrefix.IndexOf("EU", System.StringComparison.OrdinalIgnoreCase) >= 0
+                            || themeName.IndexOf("Europe", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            entry.Style = "EU";
+                        }
+                        else if (themePrefix.IndexOf("NA", System.StringComparison.OrdinalIgnoreCase) >= 0
+                            || themeName.IndexOf("North", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            entry.Style = "NA";
+                        }
+                    }
+                }
+                catch
+                {
+                    // 主题缺失不影响目录
+                }
+            }
+
+            // 混合型住宅：住宅属性 > 0 且可售卖或可制造（与游戏 PropertyUtils.IsMixedBuilding 同判据）
+            if (zone == "Residential")
+            {
+                try
+                {
+                    if (m_PrefabSystem.TryGetEntity(source, out var propEntity)
+                        && EntityManager.HasComponent<BuildingPropertyData>(propEntity))
+                    {
+                        var prop = EntityManager.GetComponentData<BuildingPropertyData>(propEntity);
+                        entry.IsMixed = prop.m_ResidentialProperties > 0
+                            && (prop.m_AllowedSold != Resource.NoResource
+                                || prop.m_AllowedManufactured != Resource.NoResource);
+                    }
+                }
+                catch
+                {
+                    // 元数据缺失按纯住宅处理
+                }
+            }
 
             return entry;
+        }
+
+        /// <summary>
+        /// 目录排序（用户规则，2026-11-14 最终版，共 8 级）：
+        /// ① 分区：住宅 → 混合居民区 → 商业 → 办公 → 工业 → 未知
+        /// ② 密度：无密度 → 低 → 中 → 高
+        /// ③ 占地总面积（面宽×进深）小的在前
+        /// ④ 面宽小的在前
+        /// ⑤ 进深小的在前
+        /// ⑥ 无等级最前，然后等级小的在前
+        /// ⑦ 标志性建筑排在常规建筑之后（当前目录不含标志性建筑，此级恒等）
+        /// ⑧ 名称按字母/数字自然顺序
+        /// 完全相等时按内部名兜底，保证顺序稳定。
+        /// </summary>
+        private sealed class CatalogComparer : IComparer<CatalogEntry>
+        {
+            public static readonly CatalogComparer Instance = new CatalogComparer();
+
+            public int Compare(CatalogEntry a, CatalogEntry b)
+            {
+                if (ReferenceEquals(a, b))
+                {
+                    return 0;
+                }
+
+                if (a == null || b == null)
+                {
+                    return a == null ? 1 : -1;
+                }
+
+                int c = ZoneRank(a).CompareTo(ZoneRank(b));
+                if (c != 0)
+                {
+                    return c;
+                }
+
+                c = DensityRank(a.Density).CompareTo(DensityRank(b.Density));
+                if (c != 0)
+                {
+                    return c;
+                }
+
+                c = (a.LotW * a.LotD).CompareTo(b.LotW * b.LotD);
+                if (c != 0)
+                {
+                    return c;
+                }
+
+                c = a.LotW.CompareTo(b.LotW);
+                if (c != 0)
+                {
+                    return c;
+                }
+
+                c = a.LotD.CompareTo(b.LotD);
+                if (c != 0)
+                {
+                    return c;
+                }
+
+                c = LevelRank(a.Level).CompareTo(LevelRank(b.Level));
+                if (c != 0)
+                {
+                    return c;
+                }
+
+                c = (a.IsSignature ? 1 : 0).CompareTo(b.IsSignature ? 1 : 0);
+                if (c != 0)
+                {
+                    return c;
+                }
+
+                // 第 7 级：名称按「字母/数字」自然顺序（a 在 b 前、1 在 2 前、2 在 10 前）
+                c = NaturalCompare(a.Name, b.Name);
+                if (c != 0)
+                {
+                    return c;
+                }
+
+                return string.CompareOrdinal(a.RawName ?? string.Empty, b.RawName ?? string.Empty);
+            }
+
+            /// <summary>分区顺序：纯住宅 0、混合居民区 1、商业 2、办公 3、工业 4、未知 5。</summary>
+            private static int ZoneRank(CatalogEntry e)
+            {
+                switch (e.Zone)
+                {
+                    case "Residential": return e.IsMixed ? 1 : 0;
+                    case "Commercial": return 2;
+                    case "Office": return 3;
+                    case "Industrial": return 4;
+                    default: return 5;
+                }
+            }
+
+            /// <summary>密度顺序：无密度 0、低 1、中 2、高 3、其它 4。</summary>
+            private static int DensityRank(string density)
+            {
+                switch (density)
+                {
+                    case "Low": return 1;
+                    case "Medium": return 2;
+                    case "High": return 3;
+                    case "": return 0;
+                    default: return 4;
+                }
+            }
+
+            /// <summary>自然顺序比较：字母不区分大小写，连续数字按数值比较（2 &lt; 10）。</summary>
+            private static int NaturalCompare(string a, string b)
+            {
+                a ??= string.Empty;
+                b ??= string.Empty;
+                int i = 0;
+                int j = 0;
+                while (i < a.Length && j < b.Length)
+                {
+                    char ca = a[i];
+                    char cb = b[j];
+                    bool da = char.IsDigit(ca);
+                    bool db = char.IsDigit(cb);
+
+                    if (da && db)
+                    {
+                        int si = i;
+                        int sj = j;
+                        while (i < a.Length && char.IsDigit(a[i])) i++;
+                        while (j < b.Length && char.IsDigit(b[j])) j++;
+
+                        // 跳过前导 0 后按长度、再按字典序比较
+                        int ai = si;
+                        int bj = sj;
+                        while (ai < i && a[ai] == '0') ai++;
+                        while (bj < j && b[bj] == '0') bj++;
+                        int la = i - ai;
+                        int lb = j - bj;
+                        if (la != lb)
+                        {
+                            return la < lb ? -1 : 1;
+                        }
+
+                        for (int k = 0; k < la; k++)
+                        {
+                            if (a[ai + k] != b[bj + k])
+                            {
+                                return a[ai + k] < b[bj + k] ? -1 : 1;
+                            }
+                        }
+
+                        continue;
+                    }
+
+                    char ua = char.ToUpperInvariant(ca);
+                    char ub = char.ToUpperInvariant(cb);
+                    if (ua != ub)
+                    {
+                        return ua < ub ? -1 : 1;
+                    }
+
+                    i++;
+                    j++;
+                }
+
+                int restA = a.Length - i;
+                int restB = b.Length - j;
+                if (restA == restB)
+                {
+                    return string.CompareOrdinal(a, b); // 完全同前缀时保持稳定
+                }
+
+                return restA < restB ? -1 : 1;
+            }
+
+            /// <summary>无等级（0）排最前，其余按等级升序。</summary>
+            private static int LevelRank(int level) => level <= 0 ? 0 : level;
         }
 
         /// <summary>JSON 字符串转义（构建期执行一次，推送时直接拼接）。</summary>
@@ -580,6 +824,17 @@ namespace StaticSceneryPloppables.Systems
             catch
             {
                 return null;
+            }
+        }
+
+        /// <summary>诊断：打印排序后前 15 条，核对六级排序规则（仅 DiagnosticsEnabled）。</summary>
+        private void LogSortSample()
+        {
+            int n = System.Math.Min(15, Catalog.Count);
+            for (int i = 0; i < n; i++)
+            {
+                var e = Catalog[i];
+                Mod.log.Warn($"[SSP] sort[{i}] {e.Zone} {e.LotW}x{e.LotD} L{e.Level} sig={e.IsSignature} {e.RawName}");
             }
         }
     }

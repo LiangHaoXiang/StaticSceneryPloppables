@@ -143,6 +143,8 @@ namespace StaticSceneryPloppables
                   .Append(",\"ic\":\"").Append(e.IconJson).Append('"')
                   .Append(",\"si\":").Append(e.NameHasInfo ? "false" : "true")
                   .Append(",\"z\":\"").Append(e.Zone).Append('"')
+                  .Append(",\"mx\":").Append(e.IsMixed ? "true" : "false")
+                  .Append(",\"st\":\"").Append(e.Style).Append('"')
                   .Append(",\"d\":\"").Append(e.Density).Append('"')
                   .Append(",\"l\":").Append(e.Level)
                   .Append(",\"w\":").Append(e.LotW)
