@@ -110,7 +110,7 @@ namespace StaticSceneryPloppables
             {
                 DumpObjectTrees(); // 诊断：每帧扫描 Updated/Deleted 并打实体树，默认关闭
             }
-            CleanupOrphans(); // 迁移残留地皮清理（实证在跑的 UIUpdate 里执行）
+            // 注：不再做残留地皮扫描——放置与迁移已同源（引擎 CreateAreas），残留检查整体移除
         }
 
         private void ApplyFilter(string json)

@@ -7,6 +7,12 @@
         <PublishConfigurationPath>Properties\PublishConfiguration.xml</PublishConfigurationPath>
     </PropertyGroup>
 
+    <!--
+      注：不能设 DebugType=none —— Unity Entities 的 ILPP 读 assembly 时需要 pdb
+      （AssemblyDefinitionFor 会 NullReference）。所以编译期照常产 pdb，
+      只在「部署目录」把它删掉（见下方 SSPStripSymbolsFromDeploy）。
+    -->
+
     <!--Imports must be after PropertyGroup block-->
     <Import Project="$([System.Environment]::GetEnvironmentVariable('CSII_TOOLPATH', 'EnvironmentVariableTarget.User'))\Mod.props"/>
     <Import Project="$([System.Environment]::GetEnvironmentVariable('CSII_TOOLPATH', 'EnvironmentVariableTarget.User'))\Mod.targets"/>
@@ -86,6 +92,18 @@
         </Exec>
         <Error Condition="$(SSP_TaskListOutput.Contains('Cities2.exe'))"
                Text="Cities2.exe is running. Close the game before building/publishing, otherwise the deploy step wipes Mods\StaticSceneryPloppables and fails to restore the dll. (Set /p:SSP_SkipGameGuard=true to bypass.)" />
+    </Target>
+
+    <!--
+      pdb 只服务于编译期的 ILPP，运行为不需要；而工具链会把 OutDir（含 pdb）整体复制进部署目录，
+      pdb 因此占发布包体积近一半（约 78 KB / 164 KB）。部署后直接从部署目录删除。
+    -->
+    <Target Name="SSPStripSymbolsFromDeploy" AfterTargets="DeployWIP" Condition="'$(DeployDir)' != ''">
+        <Message Text="SSP: strip pdb from $(DeployDir)" Importance="high" />
+        <ItemGroup>
+            <SSPPdbFiles Include="$(DeployDir)\*.pdb" />
+        </ItemGroup>
+        <Delete Files="@(SSPPdbFiles)" />
     </Target>
 
     <!--

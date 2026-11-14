@@ -27,7 +27,8 @@ namespace StaticSceneryPloppables.Systems
         public const string Prefix = "SSP_";
         public const string StrippedPrefix = "SSP_S_";
 
-        private const int BatchSize = 40; // 每帧处理的建筑数（3619 个 ≈ 90 帧 ≈ 1.5 秒）
+        private const int BatchSize = 40;        // 每帧最多处理的建筑数
+        private const double FrameBudgetMs = 3;  // 每帧在该系统上最多花的时间（ms）
 
         /// <summary>目录条目：UI 面板搜索/筛选/展示/选择所需信息。</summary>
         public class CatalogEntry
@@ -59,6 +60,7 @@ namespace StaticSceneryPloppables.Systems
 
         /// <summary>目录构建计时（定位载入耗时用）。</summary>
         private System.Diagnostics.Stopwatch m_BuildSw;
+        private int m_NextProgressLog = 500;
         private readonly List<BuildingPrefab> m_Pending = new List<BuildingPrefab>();
 
         private bool m_Enabled = true;
@@ -104,14 +106,20 @@ namespace StaticSceneryPloppables.Systems
                 return;
             }
 
-            // 分帧预算生成
+            // 分帧预算生成：按时间预算而不是固定条数，避免不同机器上出现长时间卡帧
             int processed = 0;
+            var budgetSw = System.Diagnostics.Stopwatch.StartNew();
             while (m_Pending.Count > 0 && processed < BatchSize)
             {
                 var source = m_Pending[m_Pending.Count - 1];
                 m_Pending.RemoveAt(m_Pending.Count - 1);
                 processed++;
                 BuildFor(source);
+
+                if (processed >= 4 && budgetSw.Elapsed.TotalMilliseconds >= FrameBudgetMs)
+                {
+                    break;
+                }
             }
 
             if (m_Pending.Count == 0)
@@ -123,8 +131,14 @@ namespace StaticSceneryPloppables.Systems
                 // 给剥离版 prefab 补 Assets.NAME[...] 词条（否则信息面板/提示显示原始 key）
                 Localization.PrefabNamePatcher.SetMapping(PrefabTitleIds);
             }
-            else if (Catalog.Count % 500 < BatchSize)
+            else if (Catalog.Count >= m_NextProgressLog)
             {
+                // 每 500 条一条进度日志（原来是每 40 条，载入期白白写 80+ 行盘）
+                while (Catalog.Count >= m_NextProgressLog)
+                {
+                    m_NextProgressLog += 500;
+                }
+
                 Mod.log.Warn($"[SSP] progress: {Catalog.Count}/{TotalCandidates}");
             }
         }
@@ -165,6 +179,14 @@ namespace StaticSceneryPloppables.Systems
                     PrefabBase prefab = SafeGetPrefab(entity);
                     if (prefab is BuildingPrefab bp && bp.Has<SpawnableBuilding>() && !bp.name.StartsWith(Prefix))
                     {
+                        // 等级去重：2 级外观同 1 级、4 级同 3 级，列表也不显示 → 连 prefab 都不需要建。
+                        // （旧版为兼容开发期存档注册了全部等级；0.1.x 上线后不存在含 L2/L4 的玩家存档）
+                        int level = LevelOf(bp);
+                        if (level == 2 || level == 4)
+                        {
+                            continue;
+                        }
+
                         m_Pending.Add(bp);
                     }
                 }
@@ -177,6 +199,13 @@ namespace StaticSceneryPloppables.Systems
 
         private void BuildFor(BuildingPrefab source)
         {
+            // 兜底：2/4 级不建（ScanSources 已过滤，这里再挡一次，保证列表与 prefab 一致）
+            int sourceLevel = LevelOf(source);
+            if (sourceLevel == 2 || sourceLevel == 4)
+            {
+                return;
+            }
+
             // ① 剥离版
             var stripped = CreateStrippedBuilding(source, StrippedPrefix + source.name);
             if (stripped == null)
@@ -210,15 +239,6 @@ namespace StaticSceneryPloppables.Systems
                 {
                     PrefabTitleIds[stripped.name] = titleId;
                 }
-            }
-
-            // 等级去冗余只影响「列表可见性」：2 级同 1 级外观、4 级同 3 级，故列表只收 1/3/5。
-            // ★ prefab 必须为所有等级都注册——存档里可能已经放着 L2/L4 的建筑，
-            //   少注册会导致读档时 prefab 缺失（白模）。
-            int level = entry.Level;
-            if (level == 2 || level == 4)
-            {
-                return;
             }
 
             Catalog.Add(entry);
@@ -444,36 +464,61 @@ namespace StaticSceneryPloppables.Systems
             dst.components.Add(newComp);
         }
 
-        /// <summary>反射逐字段浅拷贝（公有实例字段，含继承链；跳过 name/components）。</summary>
-        private static void CopyFields(object src, object dst, bool skipComponents)
+        /// <summary>
+        /// 反射字段缓存：<c>Type.GetFields</c> 每次都会返回新数组，而目录构建要跑 3 万多次拷贝，
+        /// 逐个类型缓存（含继承链展开）是启动耗时的主要优化点。
+        /// </summary>
+        private static readonly Dictionary<System.Type, FieldInfo[]> FieldsCache =
+            new Dictionary<System.Type, FieldInfo[]>();
+
+        private static FieldInfo[] GetFieldsFor(System.Type type)
         {
-            var type = src.GetType();
-            const BindingFlags Flags = BindingFlags.Public | BindingFlags.Instance;
-            while (type != null && type != typeof(object))
+            if (FieldsCache.TryGetValue(type, out var cached))
             {
-                foreach (var field in type.GetFields(Flags))
+                return cached;
+            }
+
+            var list = new List<FieldInfo>();
+            var walk = type;
+            const BindingFlags Flags = BindingFlags.Public | BindingFlags.Instance;
+            while (walk != null && walk != typeof(object))
+            {
+                foreach (var field in walk.GetFields(Flags))
                 {
-                    if (field.IsStatic || field.IsInitOnly)
+                    if (!field.IsStatic && !field.IsInitOnly)
                     {
-                        continue;
-                    }
-
-                    if (field.Name == "name" || (skipComponents && field.Name == "components"))
-                    {
-                        continue;
-                    }
-
-                    try
-                    {
-                        field.SetValue(dst, field.GetValue(src));
-                    }
-                    catch
-                    {
-                        // 个别特殊字段跳过，不阻塞整体
+                        list.Add(field);
                     }
                 }
 
-                type = type.BaseType;
+                walk = walk.BaseType;
+            }
+
+            var fields = list.ToArray();
+            FieldsCache[type] = fields;
+            return fields;
+        }
+
+        /// <summary>反射逐字段浅拷贝（公有实例字段，含继承链；跳过 name/components）。</summary>
+        private static void CopyFields(object src, object dst, bool skipComponents)
+        {
+            var fields = GetFieldsFor(src.GetType());
+            for (int i = 0; i < fields.Length; i++)
+            {
+                var field = fields[i];
+                if (field.Name == "name" || (skipComponents && field.Name == "components"))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    field.SetValue(dst, field.GetValue(src));
+                }
+                catch
+                {
+                    // 个别特殊字段跳过，不阻塞整体
+                }
             }
         }
 
