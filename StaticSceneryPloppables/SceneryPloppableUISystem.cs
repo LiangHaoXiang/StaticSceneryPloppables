@@ -73,23 +73,27 @@ namespace StaticSceneryPloppables
 
             m_ToolWasActive = toolActive;
 
-            // C# 侧事件 → 推给 UI（面板据此关闭）；推送后清空，保证下一次同类事件仍能触发
+            // C# 侧事件 → 推给 UI（面板据此关闭）
+            // 只在「有事件 且 面板可见」时推送：空字符串也会触发一次 Update，面板已关闭时就是
+            // Player.log 里那条 "ssp.uievent.update ... no handler" 告警的来源。
             string pending = Tools.SceneryPlacementTool.PendingUIEvent;
-            if (pending.Length != 0 && !m_PanelVisible)
+            if (pending.Length == 0)
             {
-                // 面板已关闭：没有订阅者，直接丢弃，避免 "no handler" 告警
+                m_PushedEvent = string.Empty; // 事件已消费，允许下次同类事件再次触发
+            }
+            else if (!m_PanelVisible)
+            {
+                // 面板已关闭：没有订阅者，直接丢弃
                 Tools.SceneryPlacementTool.PendingUIEvent = string.Empty;
                 m_PushedEvent = string.Empty;
-                return;
             }
-
-            if (pending != m_PushedEvent)
+            else if (pending != m_PushedEvent)
             {
                 m_PushedEvent = pending;
+                Tools.SceneryPlacementTool.PendingUIEvent = string.Empty;
                 m_EventBinding.Update();
             }
-
-            if (pending.Length != 0)
+            else
             {
                 Tools.SceneryPlacementTool.PendingUIEvent = string.Empty;
             }
