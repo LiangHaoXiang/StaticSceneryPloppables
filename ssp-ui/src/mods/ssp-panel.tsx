@@ -4,6 +4,7 @@ import { Button, Panel, Portal } from "cs2/ui";
 import { getModule, ModuleRegistryExtend } from "cs2/modding";
 import { Theme } from "cs2/bindings";
 import { useLocalization } from "cs2/l10n";
+import { InputActionConsumer } from "cs2/input";
 import sspIcon from "./icons/ssp-icon.svg";
 import zoneResidential from "./icons/zone-residential.svg";
 import zoneCommercial from "./icons/zone-commercial.svg";
@@ -175,6 +176,35 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { err
 }
 
 /* ---------- 小控件 ---------- */
+/**
+ * 关闭按钮：原版 <Button variant="icon" src="Close.svg"> 在自绘面板容器里拿不到主题色，
+ * 图标渲染成近乎黑色（几乎看不见）。这里直接画一个 26rem 的方形热区，用 brightness(0) invert(1)
+ * 把原版深色 Close.svg 强制转成白色，与筛选面板（原版 Panel）的关闭按钮观感一致。
+ */
+function PanelClose(props: { onClose: () => void }) {
+    const [hover, setHover] = React.useState(false);
+    return (
+        <div
+            role="button"
+            onClick={props.onClose}
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+            style={{
+                width: "32rem", height: "32rem", flex: "0 0 auto",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", borderRadius: "3rem",
+                backgroundColor: hover ? "rgba(255,255,255,0.14)" : "transparent",
+                opacity: hover ? 1 : 0.85,
+            }}
+        >
+            <img
+                src="Media/Glyphs/Close.svg"
+                alt=""
+                style={{ width: "20rem", height: "20rem", filter: "brightness(0) invert(1)" }}
+            />
+        </div>
+    );
+}
 function Chip(props: { label: string; active: boolean; onClick: () => void }) {
     const { label, active, onClick } = props;
     const [hover, setHover] = React.useState(false);
@@ -310,22 +340,21 @@ function PanelBody(props: {
         };
     }, [props.onClose]);
 
-    // 工具未激活时 Esc 也应关闭面板（并尽量拦截原版暂停菜单）
-    React.useEffect(() => {
-        const onKeyDown = (e: any) => {
-            if (e?.key !== "Escape") return;
-            e.preventDefault?.();
-            e.stopPropagation?.();
-            e.stopImmediatePropagation?.();
-            if (props.onClose) props.onClose();
-        };
-        window.addEventListener("keydown", onKeyDown, true);
-        document.addEventListener("keydown", onKeyDown, true);
-        return () => {
-            window.removeEventListener("keydown", onKeyDown, true);
-            document.removeEventListener("keydown", onKeyDown, true);
-        };
-    }, [props.onClose]);
+    // Esc = 游戏的 Back 输入动作（不是 DOM keydown，Gameface 不会把按键派发给页面）。
+    // 与 Find It 同款：用 InputActionConsumer 认领 Back，顺便阻止 Back 打开暂停菜单；
+    // 面板打开期间本组件常驻，因此这里不做额外条件判断。
+    const backActions = React.useMemo(
+        () => ({
+            Back: () => {
+                // 先让 C# 取消放置工具，再关面板（两者顺序无关，但要都做，否则会留下激活的工具）
+                try {
+                    (window as any).engine?.trigger?.("ssp.closeTool");
+                } catch { /* ignore */ }
+                props.onClose?.();
+            },
+        }),
+        [props.onClose]
+    );
 
     // 搜索纯前端：整份目录已在内存里，打字即时过滤，不触发任何 C# 调用
     const onChange = (q: string) => {
@@ -426,12 +455,13 @@ function PanelBody(props: {
             backdropFilter: BACKDROP,
             color: "#f0fbff", pointerEvents: "auto",
         }}>
+            <InputActionConsumer actions={backActions} ignoreFocusState={true} />
             <div style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "8rem 12rem", backgroundColor: "rgba(19,25,36,0.95)",
             }}>
                 <span style={{ fontSize: "14rem", fontWeight: 600, color: "#4bc3f1" }}>{L("Title")}</span>
-                <Button variant="icon" src="Media/Glyphs/Close.svg" onSelect={props.onClose} />
+                <PanelClose onClose={props.onClose} />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "8rem", padding: "10rem" }}>
                 <div style={{ display: "flex", gap: "8rem", alignItems: "center" }}>
