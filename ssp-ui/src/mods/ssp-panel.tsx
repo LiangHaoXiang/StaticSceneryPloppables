@@ -99,6 +99,10 @@ const VISIBLE_ROWS = 2;    // 可见行数
 const GAP = 6;             // 条目间距（rem）
 const ROW_H = 150;         // 单行高度（rem）
 const VIEW_H = VISIBLE_ROWS * ROW_H;
+// 面板背景（A/B 实验版）：彻底去掉 backdrop-filter，改用接近不透明的纯色背景。
+// 预期：消除整块区域的离屏合成，开销归零；视觉上失去背景透视。
+const BACKDROP = "none";
+const PANEL_BG = "rgba(16,19,29,0.97)";
 const PANEL_W = 700;       // 面板宽度（rem，Find It 量级）
 const GRID_W = PANEL_W - 20 - 14; // 去掉内边距 20 与滚动条 8+间距 6
 // 固定格子宽度：最后一行不足 5 个时也不允许被拉宽（保持与文本换行格子同样大小）
@@ -418,8 +422,8 @@ function PanelBody(props: {
         <div style={{
             width: `${PANEL_W}rem`, display: "flex", flexDirection: "column",
             borderRadius: "4rem", overflow: "hidden",
-            backgroundColor: "rgba(16,19,29,0.88)",
-            backdropFilter: "brightness(60%) contrast(90%) blur(7px)",
+            backgroundColor: PANEL_BG,
+            backdropFilter: BACKDROP,
             color: "#f0fbff", pointerEvents: "auto",
         }}>
             <div style={{
