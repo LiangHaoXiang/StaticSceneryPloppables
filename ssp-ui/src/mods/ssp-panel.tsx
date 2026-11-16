@@ -5,6 +5,7 @@ import { getModule, ModuleRegistryExtend } from "cs2/modding";
 import { Theme } from "cs2/bindings";
 import { useLocalization } from "cs2/l10n";
 import { InputActionConsumer } from "cs2/input";
+import { useOptionalAilIcons } from "./optional-ail-icons";
 import sspIcon from "./icons/ssp-icon.svg";
 import zoneResidential from "./icons/zone-residential.svg";
 import zoneCommercial from "./icons/zone-commercial.svg";
@@ -222,13 +223,13 @@ function Chip(props: { label: string; active: boolean; onClick: () => void }) {
 }
 
 /* 行组件：memo 化，避免筛选/翻页时重渲染所有已有条目 */
-const ResultRow = React.memo(function ResultRow(props: { item: CatalogItem; onPick: (i: number) => void }) {
-    const { item, onPick } = props;
+const ResultRow = React.memo(function ResultRow(props: { item: CatalogItem; ailIcon?: string; onPick: (i: number) => void }) {
+    const { item, ailIcon, onPick } = props;
     const [hover, setHover] = React.useState(false);
-    // 图标候选链：C# 给的 SVG 图标 → 内置分区图标（必定存在）
+    // 有 AIL 加载成功图就显示；否则始终用本模组打包的分区图，零硬依赖。
     const candidates = React.useMemo(
-        () => (item.ic ? [item.ic, iconForZone(item.z)] : [iconForZone(item.z)]),
-        [item.ic, item.z]
+        () => ailIcon ? [ailIcon, iconForZone(item.z)] : [iconForZone(item.z)],
+        [ailIcon, item.z]
     );
     const [idx, setIdx] = React.useState(0);
     React.useEffect(() => { setIdx(0); }, [candidates]);
@@ -268,7 +269,8 @@ const ResultRow = React.memo(function ResultRow(props: { item: CatalogItem; onPi
             )}
         </div>
     );
-}, (a, b) => a.item.i === b.item.i && a.item.ic === b.item.ic && a.item.n === b.item.n && a.onPick === b.onPick);
+}, (a, b) => a.item.i === b.item.i && a.item.z === b.item.z && a.item.n === b.item.n
+    && a.ailIcon === b.ailIcon && a.onPick === b.onPick);
 
 /* ---------- 面板主体 ---------- */
 function PanelBody(props: {
@@ -397,6 +399,16 @@ function PanelBody(props: {
 
     const firstRow = Math.max(0, Math.min(Math.floor(scrollIndex), maxScroll));
     const windowRows = rows.slice(firstRow, firstRow + VISIBLE_ROWS + 1);
+    // 只把窗口内条目交给 AIL 调度；key 用原建筑名，换存档/换页都不会错图或重加载
+    const visibleTargets = rows
+        .slice(firstRow, firstRow + VISIBLE_ROWS)
+        .flat()
+        .map((it) => ({ i: it.i, key: it.rn }));
+    const bufferTargets = rows
+        .slice(firstRow + VISIBLE_ROWS, firstRow + VISIBLE_ROWS + 1)
+        .flat()
+        .map((it) => ({ i: it.i, key: it.rn }));
+    const ailIcons = useOptionalAilIcons(visibleTargets, bufferTargets);
     const offsetY = -(scrollIndex - firstRow) * ROW_H;
 
     const scroll = (deltaRows: number) => {
@@ -494,7 +506,7 @@ function PanelBody(props: {
                                 <div key={ri} style={{ display: "flex", gap: `${GAP}rem`, height: `${ROW_H - GAP}rem`, marginBottom: `${GAP}rem` }}>
                                     {row.map((it) => (
                                         <div key={it.i} style={{ width: `${TILE_W}rem`, flex: "0 0 auto" }}>
-                                            <ResultRow item={it} onPick={props.onPick} />
+                                            <ResultRow item={it} ailIcon={ailIcons.get(it.i)} onPick={props.onPick} />
                                         </div>
                                     ))}
                                 </div>

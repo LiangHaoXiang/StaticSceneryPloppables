@@ -35,6 +35,7 @@ namespace StaticSceneryPloppables.Systems
         public class CatalogEntry
         {
             public PrefabBase Stamp;
+            public BuildingPrefab Source;   // 原版源建筑：AIL 迟到时按可见项重读当前图标
             public BuildingPrefab Building; // 剥离建筑本体：直接放置用
             public string Name;      // 本地化显示名（Find It 同源）
             public string RawName;   // 内部 prefab 名（搜索兜底）
@@ -259,6 +260,7 @@ namespace StaticSceneryPloppables.Systems
             // ② 目录条目（不再创建图章：放置已改为「直接放剥离建筑」，图章纯属载入开销）
             phaseSw.Restart();
             var entry = BuildEntry(source, null);
+            entry.Source = source;     // 原版源建筑：不复制/改写其 UIObject
             entry.Building = stripped; // 直接放置用（与 Find It 同源：ActivatePrefabTool）
             m_EntryMs += phaseSw.Elapsed.TotalMilliseconds;
 
@@ -300,7 +302,7 @@ namespace StaticSceneryPloppables.Systems
             string zone = "";
             string density = "";
             int level = 0;
-            string icon = SafeIcon(source); // 建筑自带 SVG 图标（若有）
+            string icon = SafeIcon(source); // 建目录时的快照；AIL 迟到时，UI 会按当前可见条目重读源 prefab
 
             try
             {
@@ -329,8 +331,7 @@ namespace StaticSceneryPloppables.Systems
                         else if (zn.Contains("Medium")) density = "Medium";
                         else if (zn.Contains("High")) density = "High";
 
-                        // 分区图标（纯 SVG，零渲染开销）；替代 thumbnail:// ——后者会为每条目触发一次
-                        // 缩略图相机渲染，是面板卡顿与空白图标的根因。
+                        // 没有源图时以分区 SVG 兜底；不猜 thumbnail:// URI（现版本只读图集，缺图不能自动生成）。
                         if (icon.Length == 0)
                         {
                             icon = SafeIcon(zonePrefab);
@@ -348,7 +349,7 @@ namespace StaticSceneryPloppables.Systems
                 Stamp = stamp,
                 Name = LocalizedName(source),
                 RawName = source.name,
-                IconUrl = icon, // 仅 SVG 图标；空则由 UI 按分区内置图标兜底
+                IconUrl = icon, // 目录快照（可能含 AIL PNG URI）；当前前端优先显示自带分区 SVG
                 Zone = zone,
                 Density = density,
                 Level = level,
@@ -604,7 +605,7 @@ namespace StaticSceneryPloppables.Systems
         }
 
         /// <summary>JSON 字符串转义（构建期执行一次，推送时直接拼接）。</summary>
-        private static string JsonEscape(string s)
+        internal static string JsonEscape(string s)
         {
             if (string.IsNullOrEmpty(s))
             {
@@ -619,7 +620,7 @@ namespace StaticSceneryPloppables.Systems
             return s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t");
         }
 
-        /// <summary>取 prefab 自带的 SVG 图标 URI（不做缩略图渲染）。</summary>
+        /// <summary>读取 prefab 当前图标 URI（可为 AIL PNG/SVG；不会生成 thumbnail://）。</summary>
         private static string SafeIcon(PrefabBase prefab)
         {
             try

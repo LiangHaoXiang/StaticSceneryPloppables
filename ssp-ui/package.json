@@ -8,7 +8,8 @@
     "build": "webpack",
     "dev": "webpack --watch",
     "update": "npx create-csii-ui-mod update",
-    "clean": "npx create-csii-ui-mod clean"
+    "clean": "npx create-csii-ui-mod clean",
+    "test": "node tests/optional-ail-icons.test.cjs"
   },
   "exclude": [
     "node_modules",

@@ -1,3 +1,4 @@
+using System;
 using System.Text;
 using Colossal.UI.Binding;
 using Game;
@@ -20,6 +21,8 @@ namespace StaticSceneryPloppables
     {
         private GetterValueBinding<string> m_CatalogBinding;
         private GetterValueBinding<string> m_EventBinding;
+        private GetterValueBinding<string> m_OptionalIconBinding;
+        private string m_OptionalIconResult = string.Empty;
         private bool m_CatalogPushed;
         private string m_PushedEvent = string.Empty;
         private bool m_PanelVisible;
@@ -40,6 +43,10 @@ namespace StaticSceneryPloppables
             // 注：语言由游戏本地化字典提供（LocaleSSP + AddSource），筛选/排序由前端完成，
             // 因此不再需要 ssp.lang / ssp.setFilter / ssp.search / ssp.resetOffset。
             AddBinding(new TriggerBinding<int>("ssp", "select", Select));
+            // 仅按面板当前窗口索引，重读原版源建筑已被 AIL 写入的图标；无 AIL 不产生强依赖。
+            m_OptionalIconBinding = new GetterValueBinding<string>("ssp", "optionalIconResult", () => m_OptionalIconResult);
+            AddBinding(m_OptionalIconBinding);
+            AddBinding(new TriggerBinding<string>("ssp", "requestOptionalIcon", RequestOptionalIcon));
             // 面板挂载/卸载上报：面板关闭时不再推送 uievent（否则 UI 侧没有 handler，会刷 WARN）
             AddBinding(new TriggerBinding<bool>("ssp", "panelVisible", visible => { m_PanelVisible = visible; }));
             AddBinding(new TriggerBinding("ssp", "closeTool", () =>
@@ -104,6 +111,47 @@ namespace StaticSceneryPloppables
                 DumpObjectTrees(); // 诊断：实体树 dump，默认关闭
             }
 #endif
+        }
+
+        /// <summary>仅返回源建筑当前的 AIL icon；空值表示缺失/未就绪，由 UI 保留分区 SVG。</summary>
+        private void RequestOptionalIcon(string request)
+        {
+            if (string.IsNullOrEmpty(request)) return;
+            int separator = request.IndexOf(':');
+            if (separator <= 0 || separator >= request.Length - 1
+                || !int.TryParse(request.Substring(0, separator), out int index)
+                || !int.TryParse(request.Substring(separator + 1), out int serial))
+            {
+                return;
+            }
+
+            var catalog = GrowableVariantSystem.Catalog;
+            if (!m_PanelVisible || !GrowableVariantSystem.BuildComplete || index < 0 || index >= catalog.Count)
+            {
+                return;
+            }
+
+            string uri = string.Empty;
+            try
+            {
+                var source = catalog[index].Source;
+                if (source != null)
+                {
+                    string current = ImageSystem.GetIcon(source);
+                    if (current != null && current.StartsWith("coui://ail/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        uri = current;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // 插件不存在、prefab 已失效或图标正在更新时维持分区图；不要让 UI 查询打断游戏。
+            }
+
+            m_OptionalIconResult = "{\"i\":" + index + ",\"s\":" + serial
+                + ",\"url\":\"" + GrowableVariantSystem.JsonEscape(uri) + "\"}";
+            m_OptionalIconBinding.Update();
         }
 
         private void Select(int index)
