@@ -28,8 +28,6 @@ namespace StaticSceneryPloppables
             updateSystem.UpdateAt<Systems.GrowableVariantSystem>(SystemUpdatePhase.Modification4B);
             updateSystem.UpdateAt<Tools.SceneryPlacementTool>(SystemUpdatePhase.ToolUpdate);
             updateSystem.UpdateAt<SceneryPloppableUISystem>(SystemUpdatePhase.UIUpdate);
-            // 孤儿地皮延迟删除的遗留处理器（仅旧存档可能有待处理组件，见类注释）
-            updateSystem.UpdateAt<Systems.HandleSSPDeleteInXFramesSystem>(SystemUpdatePhase.Modification4B);
 
             // 本地化：注册自己的词条（多语言），游戏切语言时字典随之切换
             try
