@@ -4,28 +4,30 @@
 	<!--Name shown to players-->
 	<DisplayName Value="Static Scenery Ploppables" />
 	<!--One-line summary-->
-	<ShortDescription Value="Plop any vanilla zoned building as a property-free scenery piece - same model, same lot, plus the game's own randomized decorations (trees, benches, planters, bins)." />
+	<ShortDescription Value="Plop any vanilla zoned or signature building as a property-free scenery piece - same model, same lot, plus the game's own randomized decorations (trees, benches, planters, bins)." />
 	<!--Long description: minimal Markdown subset-->
 	<LongDescription># Static Scenery Ploppables
 
 **English** | 中文见下方
 
-Plop any vanilla zoned building exactly as it looks in your city - then keep only the looks.
-Every placement looks exactly like a real zoned building - the same building with its properties stripped: same model, same lot, same decorations, zero simulation.
+Plop any vanilla zoned or signature building exactly as it looks in your city - then keep only the looks.
+Every placement looks exactly like the real thing - the same building with its properties stripped: same model, same lot, same decorations, zero simulation.
 
 **What it does**
-- Browse 2000+ vanilla zoned buildings in one panel: search, tabs for residential / mixed housing / commercial / office / industrial, and filters for style (European / North American), density, level, width and depth.
+- Browse 2000+ vanilla buildings in one panel: regular zoned buildings plus signature buildings (landmarks), with search, tabs for residential / mixed housing / commercial / office / industrial, and filters for style (European / North American), density (including a dedicated Signature filter), level, width and depth. Buildings from DLC packs you own are included automatically.
+- Building icons with real character: signature buildings show their own vanilla icons out of the box; if you also run the free Asset Icon Library mod, regular zoned buildings get their own icons too - entirely optional, no dependency either way.
 - Every placement rolls its own decoration variant with the game's own randomization: no two scenes are identical.
 - The result is a pure shell: no residents, no jobs, no households, no companies, no simulation cost.
 
 **Why it's different**
 - Static-Ploppables-style mods hand you the building shell and nothing else. Here you also get the vanilla lot surface and the randomized decorations the game itself would spawn - trees, benches, planters, bins, light poles, parking-lot details. The result looks lived-in instead of empty.
 - It is the very same building you see when the zone grows: a working building and a scenery piece look identical; the only difference is that one has properties and the other does not.
+- Signature buildings join the catalog too: place them anywhere, as many as you like, with no milestone unlock required - the looks without the ceremony.
 
 **Compatibility and safety**
 - The vanilla relocate tool and bulldozing behave exactly as they do with real buildings.
 - Uninstall-safe (verified): the save still loads and does not crash. Placed objects become missing-prefab placeholders (white models) and can be bulldozed together with their decorations.
-- No dependencies. Works alongside Find It, Move It, Anarchy and ctrlC.
+- No required dependencies. Works alongside Find It, Move It, Anarchy and ctrlC. Asset Icon Library is optional and only adds nicer icons.
 
 **Localization**: panel text follows your game language - English, Simplified/Traditional Chinese, German, French, Spanish, Portuguese (BR), Russian, Polish, Japanese, Korean. Other languages fall back to English.
 
@@ -35,22 +37,24 @@ Every placement looks exactly like a real zoned building - the same building wit
 
 # 静态造景建筑
 
-把**任意原版分区建筑**原样放进城市，只留下外观。
-每次放置的都是一栋与真实的分区建筑一致外观的建筑，只是**属性被剥离**：模型一样、地皮一样、装饰一样，不产生任何模拟。
+把**任意原版分区建筑与标志性建筑**原样放进城市，只留下外观。
+每次放置的都是与真实建筑一致外观的「属性剥离版」：模型一样、地皮一样、装饰一样，不产生任何模拟。
 
 **它做什么**
-- 在一个面板里浏览 2000+ 原版分区建筑：搜索、类型页签（住宅 / 混合型住宅 / 商业 / 办公 / 工业），以及按风格（欧美 / 北美）、密度、等级、面宽、进深的筛选。
+- 在一个面板里浏览 2000+ 原版建筑：常规分区建筑加标志性建筑（地标），支持搜索、类型页签（住宅 / 混合型住宅 / 商业 / 办公 / 工业），以及按风格（欧美 / 北美）、密度（含独立的标志性建筑档）、等级、面宽、进深筛选。已拥有的 DLC 内容包建筑自动收录。
+- 有辨识度的建筑图标：标志性建筑开箱即用原版专属图标；若同时安装免费的 Asset Icon Library，常规分区建筑也会显示各自图标——完全可选，无任何前置依赖。
 - 每次摆放用游戏自身的随机逻辑抽一份装饰方案，没有两处完全相同。
 - 结果是纯净外壳：没有居民、没有岗位、没有住户与公司、不产生模拟开销。
 
 **与 Static Ploppables 类模组的不同**
 - 那类模组给你的只是**建筑外壳**；这里还额外带上**原版地皮**与**游戏随机生成的装饰**——树木、长椅、花盆、垃圾箱、灯杆、停车场细节，场景是「有人住过」的样子，而不是空壳。
 - 它就是你平时分区长出来的那栋楼本身——真实建筑与造景件**外观完全一致**，区别只在于一个有属性、一个没有。
+- 标志性建筑同样入册：任意位置、想放几栋放几栋、无需里程碑解锁——只要外观，不要仪式感。
 
 **兼容与安全**
 - 原版迁移与拆除操作都和对真实建筑操作的结果一致。
 - 卸载安全（实测）：移除模组后存档能正常载入、不崩溃；摆放物变成白模占位，用推土机拆除白模时装饰一并清除。
-- 无前置依赖，可与 Find It / Move It / Anarchy / ctrlC 共存。
+- 无前置依赖，可与 Find It / Move It / Anarchy / ctrlC 共存；Asset Icon Library 为可选增强，仅提供更好的图标。
 
 **语言支持**：面板文案跟随游戏语言——English、简体/繁体中文、德文、法文、西班牙文、葡萄牙文（BR）、俄文、波兰文、日文、韩文；其余语言回退英文。
 
@@ -70,7 +74,7 @@ Every placement looks exactly like a real zoned building - the same building wit
 	<!--Forum thread link (optional)-->
 	<ForumLink Value="" />
 	<!--Version-->
-	<ModVersion Value="0.1.8" />
+	<ModVersion Value="0.1.9" />
 	<!--Recommended base game version-->
 	<GameVersion Value="1.6.*" />
 	<!--Dependencies (optional)-->
@@ -78,7 +82,7 @@ Every placement looks exactly like a real zoned building - the same building wit
 	<!--Required DLC (optional)-->
 	<RequiredDLC Value="" />
 	<!--Change log-->
-	<ChangeLog Value="0.1.8: panel polish - hovering the Level filter label now explains why only levels 1/3/5 are listed (2/4 look identical to 1/3), localized in all 11 supported languages; if the filter panel was open when you closed the main panel, it now reopens in that same state; removed dead icon data from the catalog (slightly smaller first load).&#10;0.1.7: building icons - when Asset Icon Library is installed, the rows you are looking at (10 visible + 5 buffered) now show each building's own icon instead of only a zone icon; pictures load one at a time, only for what is on screen, and are cached per building, so reopening the panel or switching saves does not load them again. Without Asset Icon Library, or for buildings it has no art for, the panel keeps the built-in zone icons.&#10;0.1.6: UI fixes - the panel close button is now white and matches the vanilla filter panel size, and Escape closes the panel again (it now claims the game Back action like Find It, so it also no longer opens the pause menu).&#10;0.1.5: performance &amp; polish - the panel background no longer uses a backdrop blur (measured 5-6 fps drop with blur, now 0), the panel looks cleaner with better text contrast; UI debug logging reduced to a single clear line; unused localization entries removed.&#10;0.1.4: new panel features - a separate Mixed Housing tab (pure residential vs mixed-use), a Style filter (European / North American) above Density, and an 8-level catalog ordering (zone, density, area, width, depth, level, signature, name).&#10;0.1.3: performance update - catalog build time 6.0s -> 3.6s (3397 -> 2077 prefabs, levels 2/4 are no longer built), package size 166 KB -> 74 KB (no pdb), the whole catalog is pushed to the UI once (search and filters now run instantly in the panel), orphan-lot cleanup removed (placement and relocation share the same engine pipeline); fixed a stray UI event warning in the log.&#10;0.1.2: fix - the UI bundle (.mjs + images) is now guaranteed to be inside the package; without it the toolbar entry and panel were missing.&#10;0.1.1: metadata update (bilingual description).&#10;0.1.0: first public build - full vanilla zoned building catalog, Find It-style panel with search/zone/density/level/size filters, lot surfaces and randomized vanilla decorations, 11-language UI." />
+	<ChangeLog Value="0.1.9: signature buildings - the catalog now includes all vanilla signature buildings (landmarks), with a new Signature filter in the panel; buildings from DLC packs you own appear automatically, while nothing shows up for DLCs you don't own. Signature buildings display their own vanilla icons without any other mods (Asset Icon Library icons are used when installed). Also fixed: selecting a signature building no longer opens the vanilla signature panel, and signature entries no longer show the constant &quot;L5&quot; label.&#10;0.1.8: panel polish - hovering the Level filter label now explains why only levels 1/3/5 are listed (2/4 look identical to 1/3), localized in all 11 supported languages; if the filter panel was open when you closed the main panel, it now reopens in that same state; removed dead icon data from the catalog (slightly smaller first load).&#10;0.1.7: building icons - when Asset Icon Library is installed, the rows you are looking at (10 visible + 5 buffered) now show each building's own icon instead of only a zone icon; pictures load one at a time, only for what is on screen, and are cached per building, so reopening the panel or switching saves does not load them again. Without Asset Icon Library, or for buildings it has no art for, the panel keeps the built-in zone icons.&#10;0.1.6: UI fixes - the panel close button is now white and matches the vanilla filter panel size, and Escape closes the panel again (it now claims the game Back action like Find It, so it also no longer opens the pause menu).&#10;0.1.5: performance &amp; polish - the panel background no longer uses a backdrop blur (measured 5-6 fps drop with blur, now 0), the panel looks cleaner with better text contrast; UI debug logging reduced to a single clear line; unused localization entries removed.&#10;0.1.4: new panel features - a separate Mixed Housing tab (pure residential vs mixed-use), a Style filter (European / North American) above Density, and an 8-level catalog ordering (zone, density, area, width, depth, level, signature, name).&#10;0.1.3: performance update - catalog build time 6.0s -> 3.6s (3397 -> 2077 prefabs, levels 2/4 are no longer built), package size 166 KB -> 74 KB (no pdb), the whole catalog is pushed to the UI once (search and filters now run instantly in the panel), orphan-lot cleanup removed (placement and relocation share the same engine pipeline); fixed a stray UI event warning in the log.&#10;0.1.2: fix - the UI bundle (.mjs + images) is now guaranteed to be inside the package; without it the toolbar entry and panel were missing.&#10;0.1.1: metadata update (bilingual description).&#10;0.1.0: first public build - full vanilla zoned building catalog, Find It-style panel with search/zone/density/level/size filters, lot surfaces and randomized vanilla decorations, 11-language UI." />
 	<!--External link (GitHub)-->
 	<ExternalLink Type="GitHub" Url="https://github.com/LiangHaoXiang/StaticSceneryPloppables" />
 	<!--Visibility: Public / Private / Unlisted-->
