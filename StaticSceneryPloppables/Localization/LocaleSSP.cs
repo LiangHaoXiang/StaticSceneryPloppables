@@ -36,7 +36,7 @@ namespace StaticSceneryPloppables.Localization
             "FilterTitle", "Density", "Level", "Width", "Depth",
             "Low", "Medium", "High", "Cells", "FilterNote",
             "MixedHousing", "Style", "European", "NorthAmerican",
-            "LevelNote",
+            "LevelNote", "Signature",
         };
 
         private static readonly Dictionary<Lang, string[]> Values = new Dictionary<Lang, string[]>
@@ -71,6 +71,7 @@ namespace StaticSceneryPloppables.Localization
                 "European",
                 "North American",
                 "Levels 2 and 4 look identical to 1 and 3, so they are not listed separately.",
+                "Signature",
             },
             [Lang.ZH_HANS] = new[]
             {
@@ -102,6 +103,7 @@ namespace StaticSceneryPloppables.Localization
                 "欧美",
                 "北美",
                 "2/4 级外观与 1/3 级相同，故不单列。",
+                "标志性建筑",
             },
             [Lang.ZH_HANT] = new[]
             {
@@ -133,6 +135,7 @@ namespace StaticSceneryPloppables.Localization
                 "歐美",
                 "北美",
                 "2/4 級外觀與 1/3 級相同，故不單列。",
+                "標誌性建築",
             },
             [Lang.DE] = new[]
             {
@@ -164,6 +167,7 @@ namespace StaticSceneryPloppables.Localization
                 "Europäisch",
                 "Nordamerikanisch",
                 "Stufe 2/4 sieht genauso aus wie 1/3 und wird daher nicht separat aufgeführt.",
+                "Wahrzeichen",
             },
             [Lang.FR] = new[]
             {
@@ -195,6 +199,7 @@ namespace StaticSceneryPloppables.Localization
                 "Européen",
                 "Nord-américain",
                 "Les niveaux 2/4 sont identiques aux niveaux 1/3, ils ne sont donc pas listés séparément.",
+                "Emblématique",
             },
             [Lang.ES] = new[]
             {
@@ -226,6 +231,7 @@ namespace StaticSceneryPloppables.Localization
                 "Europeo",
                 "Norteamericano",
                 "Los niveles 2/4 son idénticos a 1/3, por eso no se listan por separado.",
+                "Emblemático",
             },
             [Lang.PT_BR] = new[]
             {
@@ -257,6 +263,7 @@ namespace StaticSceneryPloppables.Localization
                 "Europeu",
                 "Norte-americano",
                 "Os níveis 2/4 são idênticos aos 1/3, por isso não são listados separadamente.",
+                "Emblemático",
             },
             [Lang.RU] = new[]
             {
@@ -288,6 +295,7 @@ namespace StaticSceneryPloppables.Localization
                 "Европейский",
                 "Североамериканский",
                 "Уровни 2/4 выглядят так же, как 1/3, поэтому не указаны отдельно.",
+                "Знаковое",
             },
             [Lang.PL] = new[]
             {
@@ -319,6 +327,7 @@ namespace StaticSceneryPloppables.Localization
                 "Europejski",
                 "Północnoamerykański",
                 "Poziomy 2/4 wyglądają tak samo jak 1/3, dlatego nie są wymienione osobno.",
+                "Charakterystyczne",
             },
             [Lang.JA] = new[]
             {
@@ -350,6 +359,7 @@ namespace StaticSceneryPloppables.Localization
                 "ヨーロッパ",
                 "北米",
                 "レベル2/4は1/3と同じ外観のため、個別には表示されません。",
+                "ランドマーク",
             },
             [Lang.KO] = new[]
             {
@@ -381,6 +391,7 @@ namespace StaticSceneryPloppables.Localization
                 "유럽",
                 "북미",
                 "레벨 2/4는 1/3과 동일한 외관이므로 별도로 표시하지 않습니다.",
+                "랜드마크",
             },
         };
 

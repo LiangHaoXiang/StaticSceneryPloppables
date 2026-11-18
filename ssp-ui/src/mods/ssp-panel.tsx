@@ -41,9 +41,9 @@ const STYLE_OPTS: { key: string; labelKey: string }[] = [
     { key: "EU", labelKey: "European" },
     { key: "NA", labelKey: "NorthAmerican" },
 ];
-const DENSITY_OPTS = ["", "Low", "Medium", "High"];
+const DENSITY_OPTS = ["", "Low", "Medium", "High", "Signature"];
 const DENSITY_LABEL = (L: LFn): Record<string, string> =>
-    ({ "": L("All"), Low: L("Low"), Medium: L("Medium"), High: L("High") });
+    ({ "": L("All"), Low: L("Low"), Medium: L("Medium"), High: L("High"), Signature: L("Signature") });
 // 只保留 1/3/5 级：2 级外观与 1 级相同、4 级与 3 级相同（C# 侧也已按此裁剪目录）
 const LEVEL_OPTS = [0, 1, 3, 5];
 const SIZE_OPTS = [0, 2, 3, 4, 5, 6];
@@ -71,6 +71,7 @@ const FALLBACK_EN: Record<string, string> = {
     Low: "Low", Medium: "Medium", High: "High", Cells: "{0}",
     FilterNote: "Applies on top of the search box; closing this panel keeps the selection.",
     LevelNote: "Levels 2 and 4 look identical to 1 and 3, so they are not listed separately.",
+    Signature: "Signature",
 };
 
 type LFn = (key: string, a0?: any, a1?: any, a2?: any) => string;
@@ -265,7 +266,8 @@ const ResultRow = React.memo(function ResultRow(props: { item: CatalogItem; ailI
             }}>{item.n}</div>
             {item.si && (
                 <div style={{ marginTop: "2rem", color: "#7d9bb5", fontSize: "9rem", whiteSpace: "nowrap" }}>
-                    L{item.l}　{item.w}x{item.dp}
+                    {/* 标志性建筑等级恒 5，无需显示 L5（#27 用户反馈） */}
+                    {item.d === "Signature" ? `${item.w}x${item.dp}` : `L${item.l}　${item.w}x${item.dp}`}
                 </div>
             )}
         </div>

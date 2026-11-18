@@ -198,7 +198,11 @@ namespace StaticSceneryPloppables.Systems
                 foreach (var entity in entities)
                 {
                     PrefabBase prefab = SafeGetPrefab(entity);
-                    if (prefab is BuildingPrefab bp && bp.Has<SpawnableBuilding>() && !bp.name.StartsWith(Prefix))
+                    // #27：纳入标志性建筑——挂 SignatureBuilding 组件（无 SpawnableBuilding），
+                    // 实体侧同样由 LateInitialize 写入 SpawnableBuildingData（等级恒 5，见游戏源码）。
+                    if (prefab is BuildingPrefab bp
+                        && (bp.Has<SpawnableBuilding>() || bp.Has<SignatureBuilding>())
+                        && !bp.name.StartsWith(Prefix))
                     {
                         // 等级去重：2 级外观同 1 级、4 级同 3 级，列表也不显示 → 连 prefab 都不需要建。
                         // （旧版为兼容开发期存档注册了全部等级；0.1.x 上线后不存在含 L2/L4 的玩家存档）
@@ -299,6 +303,7 @@ namespace StaticSceneryPloppables.Systems
             string zone = "";
             string density = "";
             int level = 0;
+            bool isSignature = source.Has<SignatureBuilding>();
             string icon = SafeIcon(source); // 建目录时的快照；AIL 迟到时，UI 会按当前可见条目重读源 prefab
 
             try
@@ -327,6 +332,12 @@ namespace StaticSceneryPloppables.Systems
                         if (zn.Contains("Low")) density = "Low";
                         else if (zn.Contains("Medium")) density = "Medium";
                         else if (zn.Contains("High")) density = "High";
+
+                        // #27：标志性建筑单列为一种「密度」筛选类型（等级恒 5）
+                        if (isSignature)
+                        {
+                            density = "Signature";
+                        }
 
                         // 没有源图时以分区 SVG 兜底；不猜 thumbnail:// URI（现版本只读图集，缺图不能自动生成）。
                         if (icon.Length == 0)
@@ -359,7 +370,7 @@ namespace StaticSceneryPloppables.Systems
             entry.RawNameJson = JsonEscape(entry.RawName);
             entry.NameHasInfo = System.Text.RegularExpressions.Regex.IsMatch(
                 entry.Name ?? string.Empty, @"(L\d|\d+x\d)");
-            entry.IsSignature = source.Has<SignatureBuilding>();
+            entry.IsSignature = isSignature;
 
             // 风格：原版 prefab 名以 EU_ / NA_ 前缀区分欧美/北美，其余归入「全部」
             if (source.name.StartsWith("EU_"))
@@ -426,14 +437,14 @@ namespace StaticSceneryPloppables.Systems
         }
 
         /// <summary>
-        /// 目录排序（用户规则，2026-11-14 最终版，共 8 级）：
+        /// 目录排序（用户规则，2026-11-14 最终版，共 8 级；2026-11-18 密度新增「标志性」档）：
         /// ① 分区：住宅 → 混合居民区 → 商业 → 办公 → 工业 → 未知
-        /// ② 密度：无密度 → 低 → 中 → 高
+        /// ② 密度：无密度 → 低 → 中 → 高 → 标志性
         /// ③ 占地总面积（面宽×进深）小的在前
         /// ④ 面宽小的在前
         /// ⑤ 进深小的在前
         /// ⑥ 无等级最前，然后等级小的在前
-        /// ⑦ 标志性建筑排在常规建筑之后（当前目录不含标志性建筑，此级恒等）
+        /// ⑦ 标志性建筑排在常规建筑之后（密度单列后通常已在②分离，此级兜底同密度混排场景）
         /// ⑧ 名称按字母/数字自然顺序
         /// 完全相等时按内部名兜底，保证顺序稳定。
         /// </summary>
@@ -518,7 +529,7 @@ namespace StaticSceneryPloppables.Systems
                 }
             }
 
-            /// <summary>密度顺序：无密度 0、低 1、中 2、高 3、其它 4。</summary>
+            /// <summary>密度顺序：无密度 0、低 1、中 2、高 3、标志性 4、其它 5。</summary>
             private static int DensityRank(string density)
             {
                 switch (density)
@@ -526,8 +537,9 @@ namespace StaticSceneryPloppables.Systems
                     case "Low": return 1;
                     case "Medium": return 2;
                     case "High": return 3;
+                    case "Signature": return 4;
                     case "": return 0;
-                    default: return 4;
+                    default: return 5;
                 }
             }
 
@@ -727,9 +739,20 @@ namespace StaticSceneryPloppables.Systems
                 // 源建筑无图标时给剥离版留 thumbnail:// 候选（供建筑编辑器等其他 UI 尝试）。
                 // 注意：当前版本该 URI 只查预制图集，生长建筑不在图集中 → 多半加载失败并回退，
                 // 面板自身不依赖它（走 ssp.requestOptionalIcon 的 AIL 查询 + 分区图兜底）。
-                if (clone.TryGet<UIObject>(out var uiObject) && string.IsNullOrEmpty(uiObject.m_Icon))
+                if (clone.TryGet<UIObject>(out var uiObject))
                 {
-                    uiObject.m_Icon = src.thumbnailUrl;
+                    // #27：源标志楼的 UIObject.m_Group 指向原版「标志性建筑」UI 分组；克隆若保留，
+                    // 会在注册时被加进该分组（UIObject.LateInitialize → m_Group.AddElement）→
+                    // 激活放置工具时呼出原版标志性建筑面板，且克隆会混入里程碑选楼列表 → 与分组脱钩。
+                    if (src.Has<SignatureBuilding>() && uiObject.m_Group != null)
+                    {
+                        uiObject.m_Group = null;
+                    }
+
+                    if (string.IsNullOrEmpty(uiObject.m_Icon))
+                    {
+                        uiObject.m_Icon = src.thumbnailUrl;
+                    }
                 }
 
                 clone.isDirty = true;

@@ -115,7 +115,11 @@ namespace StaticSceneryPloppables
 #endif
         }
 
-        /// <summary>仅返回源建筑当前的 AIL icon；空值表示缺失/未就绪，由 UI 保留分区 SVG。</summary>
+        /// <summary>
+        /// 返回源建筑当前可用的图标 URI；空值表示缺失/未就绪，由 UI 保留分区 SVG。
+        /// 优先级：AIL 已替换的 coui://ail/ 图 → 标志性建筑的原版图（#27：其在原版图集中有图，
+        /// 有内置 m_Icon 直接用，否则用 thumbnail://——该 URI 仅对图集内条目有效，故只对标志性条目放行）。
+        /// </summary>
         private void RequestOptionalIcon(string request)
         {
             if (string.IsNullOrEmpty(request)) return;
@@ -136,13 +140,21 @@ namespace StaticSceneryPloppables
             string uri = string.Empty;
             try
             {
-                var source = catalog[index].Source;
+                var entry = catalog[index];
+                var source = entry.Source;
                 if (source != null)
                 {
                     string current = ImageSystem.GetIcon(source);
                     if (current != null && current.StartsWith("coui://ail/", StringComparison.OrdinalIgnoreCase))
                     {
                         uri = current;
+                    }
+                    else if (entry.IsSignature)
+                    {
+                        // 标志性建筑免 AIL：内置图标（Media/…svg 等静态资源）或图集缩略图都实际可渲染
+                        uri = !string.IsNullOrEmpty(current)
+                            ? current
+                            : source.thumbnailUrl + "?width=128&height=128";
                     }
                 }
             }

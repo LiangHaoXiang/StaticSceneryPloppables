@@ -1,7 +1,8 @@
 import React from "react";
 
-// AIL is optional: this module only reads URLs that it has already written to source prefabs.
-// No guessed coui path, external assembly reference, full-catalog scan or thumbnail:// request.
+// AIL is optional. For regular buildings only coui://ail/ URLs are used (written by AIL itself).
+// Signature buildings (#27) additionally get their vanilla icon / atlas thumbnail from C#,
+// so any non-empty URL from the binding is trusted; broken images fall back to zone SVG.
 const STEP_MS = 60;            // half the previous 120ms: visible pictures appear faster
 const RECHECK_MS = 2400;       // per-item cadence while AIL may still be initialising
 const MAX_ATTEMPTS = 24;       // bounded per item per panel session
@@ -115,7 +116,7 @@ export function useOptionalAilIcons(
             // While scrolling, drop a response whose tile left the window: do not start its image.
             const stillVisible = targets.current.some((t) => t.key === target.key && t.i === target.i);
             if (!stillVisible) { active = null; schedule(STEP_MS); return; }
-            if (typeof result.url !== "string" || !result.url.toLowerCase().startsWith("coui://ail/")) {
+            if (typeof result.url !== "string" || result.url.length === 0) {
                 active = null;
                 schedule(RECHECK_MS);
                 return;
