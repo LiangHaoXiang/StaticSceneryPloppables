@@ -34,12 +34,11 @@ namespace StaticSceneryPloppables.Systems
         /// <summary>目录条目：UI 面板搜索/筛选/展示/选择所需信息。</summary>
         public class CatalogEntry
         {
-            public PrefabBase Stamp;
             public BuildingPrefab Source;   // 原版源建筑：AIL 迟到时按可见项重读当前图标
             public BuildingPrefab Building; // 剥离建筑本体：直接放置用
             public string Name;      // 本地化显示名（Find It 同源）
             public string RawName;   // 内部 prefab 名（搜索兜底）
-            public string IconUrl;   // 图标（AIL 替换后的 m_Icon 或缩略图 URL，Find It 同源）
+            public string IconUrl;   // 建目录时源建筑 m_Icon 的快照（仅供 LogIconSummary 诊断；面板图标走 AIL 按需查询，不推给 UI）
             public string Zone;      // Residential/Commercial/Industrial/Office
             public string Density;   // Low/Medium/High/""（zone 名解析）
             public int Level;        // 1-5
@@ -50,7 +49,6 @@ namespace StaticSceneryPloppables.Systems
             public bool NameHasInfo;     // 名字里已含 Lx/宽x深 → UI 不再显示小字
             public string NameJson;      // 已转义的 JSON 字符串内容
             public string RawNameJson;
-            public string IconJson;
             public bool IsSignature;     // 标志性建筑（当前不纳入目录，保留字段以支持排序第 6 级）
             public bool IsMixed;         // 混合型住宅（住宅属性 + 可售卖/可制造）
             public string Style;         // 风格："EU" / "NA" / ""（按 prefab 名前缀）
@@ -166,7 +164,7 @@ namespace StaticSceneryPloppables.Systems
             }
         }
 
-        /// <summary>图标排查：统计空缩略图 URL 数量并抽样打印（UI 空白图标的判定依据）。</summary>
+        /// <summary>构建期诊断：统计源建筑无图标快照的数量并抽样（仅写日志；面板显示不依赖这些快照）。</summary>
         private void LogIconSummary()
         {
             int empty = 0;
@@ -259,8 +257,7 @@ namespace StaticSceneryPloppables.Systems
 
             // ② 目录条目（不再创建图章：放置已改为「直接放剥离建筑」，图章纯属载入开销）
             phaseSw.Restart();
-            var entry = BuildEntry(source, null);
-            entry.Source = source;     // 原版源建筑：不复制/改写其 UIObject
+            var entry = BuildEntry(source);
             entry.Building = stripped; // 直接放置用（与 Find It 同源：ActivatePrefabTool）
             m_EntryMs += phaseSw.Elapsed.TotalMilliseconds;
 
@@ -297,7 +294,7 @@ namespace StaticSceneryPloppables.Systems
         }
 
         /// <summary>构建目录条目：本地化名（Find It 同源）、图标、zone/等级/密度/宽深。</summary>
-        private CatalogEntry BuildEntry(BuildingPrefab source, PrefabBase stamp)
+        private CatalogEntry BuildEntry(BuildingPrefab source)
         {
             string zone = "";
             string density = "";
@@ -346,10 +343,10 @@ namespace StaticSceneryPloppables.Systems
 
             var entry = new CatalogEntry
             {
-                Stamp = stamp,
+                Source = source,       // 原版源建筑引用：面板按可见项查询其当前 AIL 图标
                 Name = LocalizedName(source),
                 RawName = source.name,
-                IconUrl = icon, // 目录快照（可能含 AIL PNG URI）；当前前端优先显示自带分区 SVG
+                IconUrl = icon, // 仅供构建期诊断日志；UI 面板图标不再使用此快照（走 AIL 按需查询 + 分区图兜底）
                 Zone = zone,
                 Density = density,
                 Level = level,
@@ -360,7 +357,6 @@ namespace StaticSceneryPloppables.Systems
             // 构建期一次算好：JSON 转义 + 「名字里是否已含等级/尺寸」
             entry.NameJson = JsonEscape(entry.Name);
             entry.RawNameJson = JsonEscape(entry.RawName);
-            entry.IconJson = JsonEscape(entry.IconUrl);
             entry.NameHasInfo = System.Text.RegularExpressions.Regex.IsMatch(
                 entry.Name ?? string.Empty, @"(L\d|\d+x\d)");
             entry.IsSignature = source.Has<SignatureBuilding>();
@@ -728,6 +724,9 @@ namespace StaticSceneryPloppables.Systems
                 CopyComponentIfPresent<BuildingTerraformOverride>(src, clone);
                 CopyComponentIfPresent<EditorAssetCategoryOverride>(src, clone);
 
+                // 源建筑无图标时给剥离版留 thumbnail:// 候选（供建筑编辑器等其他 UI 尝试）。
+                // 注意：当前版本该 URI 只查预制图集，生长建筑不在图集中 → 多半加载失败并回退，
+                // 面板自身不依赖它（走 ssp.requestOptionalIcon 的 AIL 查询 + 分区图兜底）。
                 if (clone.TryGet<UIObject>(out var uiObject) && string.IsNullOrEmpty(uiObject.m_Icon))
                 {
                     uiObject.m_Icon = src.thumbnailUrl;

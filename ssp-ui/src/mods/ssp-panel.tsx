@@ -1,6 +1,6 @@
 import React from "react";
 import classNames from "classnames";
-import { Button, Panel, Portal } from "cs2/ui";
+import { Button, Panel, Portal, Tooltip } from "cs2/ui";
 import { getModule, ModuleRegistryExtend } from "cs2/modding";
 import { Theme } from "cs2/bindings";
 import { useLocalization } from "cs2/l10n";
@@ -15,7 +15,7 @@ import zoneGeneric from "./icons/zone-generic.svg";
 
 /* ---------- 类型 ---------- */
 interface CatalogItem {
-    i: number; n: string; rn: string; ic: string; si: boolean;
+    i: number; n: string; rn: string; si: boolean;
     z: string; d: string; l: number; w: number; dp: number;
     /** 混合型住宅（住宅 + 可售卖/可制造） */
     mx: boolean;
@@ -70,6 +70,7 @@ const FALLBACK_EN: Record<string, string> = {
     FilterTitle: "Filters", Style: "Style", Density: "Density", Level: "Level", Width: "Width", Depth: "Depth",
     Low: "Low", Medium: "Medium", High: "High", Cells: "{0}",
     FilterNote: "Applies on top of the search box; closing this panel keeps the selection.",
+    LevelNote: "Levels 2 and 4 look identical to 1 and 3, so they are not listed separately.",
 };
 
 type LFn = (key: string, a0?: any, a1?: any, a2?: any) => string;
@@ -125,7 +126,7 @@ function toItem(raw: any): CatalogItem {
     const name = raw?.n ?? "";
     const rawName = raw?.rn ?? "";
     return {
-        i: raw?.i ?? 0, n: name, rn: rawName, ic: raw?.ic ?? "", si: !!raw?.si,
+        i: raw?.i ?? 0, n: name, rn: rawName, si: !!raw?.si,
         z: raw?.z ?? "", d: raw?.d ?? "", l: raw?.l ?? 0, w: raw?.w ?? 0, dp: raw?.dp ?? 0,
         mx: !!raw?.mx, st: raw?.st ?? "",
         sb: (name + "\n" + rawName).toLowerCase(),
@@ -585,7 +586,10 @@ function FilterPanel(props: { filter: FilterState; apply: (next: FilterState) =>
                     ))}
                 </div>
                 <div style={{ display: "flex", gap: "6rem", alignItems: "center" }}>
-                    <span style={{ color: "#7d9bb5", fontSize: "11rem", width: "52rem" }}>{L("Level")}</span>
+                    {/* #20：悬停「等级」标签说明为何只有 1/3/5（原版 2/4 级外观与 1/3 相同，目录侧已裁剪） */}
+                    <Tooltip tooltip={L("LevelNote")}>
+                        <span style={{ color: "#7d9bb5", fontSize: "11rem", width: "52rem", cursor: "help" }}>{L("Level")}</span>
+                    </Tooltip>
                     {LEVEL_OPTS.map((l) => (
                         <Chip key={l} label={l === 0 ? L("All") : `L${l}`} active={filter.l === l}
                             onClick={() => apply({ ...filter, l })} />
@@ -634,7 +638,9 @@ export const SSPToolbarIcon: ModuleRegistryExtend = (Component) => {
             persisted.filter = next;
             setFilter(next);
         }, []);
-        const closeAll = React.useCallback(() => { setOpen(false); setShowFilter(false); }, []);
+        // 关闭主面板时保留筛选面板的展开状态（showFilter 在本组件，工具栏不卸载 → 状态天然存活），
+        // 下次打开面板时筛选面板按关闭前的状态恢复；筛选条件本身经 persisted.filter 持久化。
+        const closeAll = React.useCallback(() => { setOpen(false); }, []);
         return (
             <>
                 <Button

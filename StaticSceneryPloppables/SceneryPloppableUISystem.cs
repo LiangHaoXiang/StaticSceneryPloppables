@@ -10,11 +10,13 @@ using StaticSceneryPloppables.Tools;
 namespace StaticSceneryPloppables
 {
     /// <summary>
-    /// Gameface 桥：**一次性推送整份目录**（ssp.catalog）+ 选择放置（ssp.select）+ 工具取消事件（ssp.uievent）。
+    /// Gameface 桥：**一次性推送整份目录**（ssp.catalog）+ 选择放置（ssp.select）+ 工具取消事件（ssp.uievent）
+    /// + 按需图标查询（ssp.requestOptionalIcon → ssp.optionalIconResult，仅当前可见窗口条目，见 #16 AIL 可选增强）。
     ///
     /// 设计变更（2026-11-14，优化 #9/#11）：
     /// 旧实现是「分页 + C# 侧搜索」，前端打开面板后要拉 18 页，每页都重新全表扫描一次并构造 JSON；
-    /// 现在目录只推送一次（约 250 KB），搜索/筛选/排序全部在前端完成——打字不再触发任何 C# 计算。
+    /// 现在目录只推送一次，搜索/筛选/排序全部在前端完成——打字不再触发任何 C# 计算。
+    /// （2026-11-18：目录条目移除 ic 图标字段——面板图标已改走 AIL 按需查询，该字段成为死数据。）
     /// 绑定协议：GetterValueBinding 推送事件名为 &lt;name&gt;.update，JS 需先 trigger &lt;name&gt;.subscribe。
     /// </summary>
     public partial class SceneryPloppableUISystem : UISystemBase
@@ -188,7 +190,6 @@ namespace StaticSceneryPloppables
                 sb.Append("{\"i\":").Append(i)
                   .Append(",\"n\":\"").Append(e.NameJson).Append('"')
                   .Append(",\"rn\":\"").Append(e.RawNameJson).Append('"')
-                  .Append(",\"ic\":\"").Append(e.IconJson).Append('"')
                   .Append(",\"si\":").Append(e.NameHasInfo ? "false" : "true")
                   .Append(",\"z\":\"").Append(e.Zone).Append('"')
                   .Append(",\"mx\":").Append(e.IsMixed ? "true" : "false")
