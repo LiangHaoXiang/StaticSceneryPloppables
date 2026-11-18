@@ -13,10 +13,7 @@ namespace StaticSceneryPloppables
     /// <summary>
     /// 只读诊断：把本模组实体的「实体树」打进日志（默认关闭，仅排障时把
     /// <see cref="Mod.DiagnosticsEnabled"/> 改 true 后重新构建）。
-    ///
-    /// 历史注记：1.6.2f1 反编译确认地皮 area 由 ReplacePrefabSystem.CreateAreas 以
-    /// m_Owner = 正在创建的对象 生成；旧版「迁移后旧地皮残留」源于放置与迁移走了两套
-    /// 地皮生成逻辑，现两者已同源（都走引擎 Create 管线），因此残留扫描逻辑已整体移除。
+    /// 地皮 area 由引擎 Create 管线（ReplacePrefabSystem.CreateAreas）生成，放置与迁移同源。
     /// </summary>
     public partial class SceneryPloppableUISystem
     {

@@ -204,8 +204,7 @@ namespace StaticSceneryPloppables.Systems
                         && (bp.Has<SpawnableBuilding>() || bp.Has<SignatureBuilding>())
                         && !bp.name.StartsWith(Prefix))
                     {
-                        // 等级去重：2 级外观同 1 级、4 级同 3 级，列表也不显示 → 连 prefab 都不需要建。
-                        // （旧版为兼容开发期存档注册了全部等级；0.1.x 上线后不存在含 L2/L4 的玩家存档）
+                        // 等级去重：2 级外观同 1 级、4 级同 3 级 → 不建 prefab 也不进目录
                         int level = LevelOf(bp);
                         if (level == 2 || level == 4)
                         {
@@ -259,7 +258,7 @@ namespace StaticSceneryPloppables.Systems
                 return;
             }
 
-            // ② 目录条目（不再创建图章：放置已改为「直接放剥离建筑」，图章纯属载入开销）
+            // ② 目录条目（只登记展示信息，放置直接用上面的剥离建筑）
             phaseSw.Restart();
             var entry = BuildEntry(source);
             entry.Building = stripped; // 直接放置用（与 Find It 同源：ActivatePrefabTool）

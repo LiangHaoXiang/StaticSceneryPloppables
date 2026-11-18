@@ -5,14 +5,10 @@ using Game.Tools;
 namespace StaticSceneryPloppables.Tools
 {
     /// <summary>
-    /// 造景放置工具：直接把「剥离版建筑 prefab」放下去（Create 模式）。
+    /// 造景放置工具：把「剥离版建筑 prefab」经标准 Create 管线直接放置。
     ///
-    /// 为什么不再用图章（2026-11-13 结论，依据 Plop the Growables README + Find It 源码）：
-    /// - CS2 允许直接放置建筑 prefab（Find It 就是 `ToolSystem.ActivatePrefabTool(prefab)` 一行）；
-    /// - 图章的 stamping 分支只创建 SubObjects，**不会**按建筑声明建地皮，只能靠在图章上再复制一份
-    ///   `ObjectSubAreas` 声明去补 → 双份声明、拆除/迁移时地皮归属错乱；
-    /// - 直接放置走标准 Create 管线：`ObjectInitializeSystem` 按 prefab 声明登记地皮槽位，
-    ///   随后 `CreateAreas` 建实体，归属/缓冲/清理全部由引擎维护，与迁移同源。
+    /// 直接放置走引擎 Create 管线：ObjectInitializeSystem 按 prefab 声明登记地皮槽位，
+    /// 随后 CreateAreas 建实体，归属/缓冲/清理全部由引擎维护，与迁移同源。
     /// </summary>
     public partial class SceneryPlacementTool : ObjectToolSystem
     {

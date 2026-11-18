@@ -103,8 +103,7 @@ const VISIBLE_ROWS = 2;    // 可见行数
 const GAP = 6;             // 条目间距（rem）
 const ROW_H = 150;         // 单行高度（rem）
 const VIEW_H = VISIBLE_ROWS * ROW_H;
-// 面板背景（A/B 实验版）：彻底去掉 backdrop-filter，改用接近不透明的纯色背景。
-// 预期：消除整块区域的离屏合成，开销归零；视觉上失去背景透视。
+// 面板背景：接近不透明的纯色（不用 backdrop-filter，避免整块离屏合成掉帧）
 const BACKDROP = "none";
 const PANEL_BG = "rgba(16,19,29,0.97)";
 const PANEL_W = 700;       // 面板宽度（rem，Find It 量级）
@@ -225,8 +224,8 @@ function Chip(props: { label: string; active: boolean; onClick: () => void }) {
 }
 
 /* 行组件：memo 化，避免筛选/翻页时重渲染所有已有条目 */
-const ResultRow = React.memo(function ResultRow(props: { item: CatalogItem; ailIcon?: string; onPick: (i: number) => void }) {
-    const { item, ailIcon, onPick } = props;
+const ResultRow = React.memo(function ResultRow(props: { item: CatalogItem; ailIcon?: string; selected?: boolean; onPick: (i: number) => void }) {
+    const { item, ailIcon, selected, onPick } = props;
     const [hover, setHover] = React.useState(false);
     // 有 AIL 加载成功图就显示；否则始终用本模组打包的分区图，零硬依赖。
     const candidates = React.useMemo(
@@ -245,7 +244,8 @@ const ResultRow = React.memo(function ResultRow(props: { item: CatalogItem; ailI
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start",
                 width: "100%", height: "100%", boxSizing: "border-box",
                 padding: "6rem", borderRadius: "4rem", cursor: "pointer",
-                backgroundColor: hover ? "rgba(75,195,241,0.18)" : "rgba(34,49,65,0.9)",
+                // 选中 = 与筛选 Chip 同款蓝色实底（#4bc3f1）；未选中仅悬停微亮
+                backgroundColor: selected ? "#4bc3f1" : hover ? "rgba(75,195,241,0.18)" : "rgba(34,49,65,0.9)",
             }}
         >
             <img
@@ -259,13 +259,18 @@ const ResultRow = React.memo(function ResultRow(props: { item: CatalogItem; ailI
                 style={{ width: "84rem", height: "84rem", objectFit: "contain" }}
             />
             <div style={{
-                marginTop: "4rem", width: "100%", height: "28rem", color: "#f0fbff", fontSize: "10rem",
+                marginTop: "4rem", width: "100%", height: "28rem",
+                color: selected ? "#141b22" : "#f0fbff", fontSize: "10rem",
                 textAlign: "center", lineHeight: "14rem",
                 display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2,
                 overflow: "hidden", wordBreak: "break-word",
             }}>{item.n}</div>
             {item.si && (
-                <div style={{ marginTop: "2rem", color: "#7d9bb5", fontSize: "9rem", whiteSpace: "nowrap" }}>
+                <div style={{
+                    marginTop: "2rem",
+                    color: selected ? "rgba(20,27,34,0.75)" : "#7d9bb5",
+                    fontSize: "9rem", whiteSpace: "nowrap",
+                }}>
                     {/* 标志性建筑等级恒 5，无需显示 L5（#27 用户反馈） */}
                     {item.d === "Signature" ? `${item.w}x${item.dp}` : `L${item.l}　${item.w}x${item.dp}`}
                 </div>
@@ -273,12 +278,13 @@ const ResultRow = React.memo(function ResultRow(props: { item: CatalogItem; ailI
         </div>
     );
 }, (a, b) => a.item.i === b.item.i && a.item.z === b.item.z && a.item.n === b.item.n
-    && a.ailIcon === b.ailIcon && a.onPick === b.onPick);
+    && a.ailIcon === b.ailIcon && a.selected === b.selected && a.onPick === b.onPick);
 
 /* ---------- 面板主体 ---------- */
 function PanelBody(props: {
     onPick: (i: number) => void;
     onClose: () => void;
+    selected: number;
     showFilter: boolean;
     onToggleFilter: () => void;
     filter: FilterState;
@@ -509,7 +515,9 @@ function PanelBody(props: {
                                 <div key={ri} style={{ display: "flex", gap: `${GAP}rem`, height: `${ROW_H - GAP}rem`, marginBottom: `${GAP}rem` }}>
                                     {row.map((it) => (
                                         <div key={it.i} style={{ width: `${TILE_W}rem`, flex: "0 0 auto" }}>
-                                            <ResultRow item={it} ailIcon={ailIcons.get(it.i)} onPick={props.onPick} />
+                                            <ResultRow item={it} ailIcon={ailIcons.get(it.i)}
+                                                selected={props.selected === it.i}
+                                                onPick={props.onPick} />
                                         </div>
                                     ))}
                                 </div>
@@ -629,9 +637,12 @@ export const SSPToolbarIcon: ModuleRegistryExtend = (Component) => {
         const { children, ...otherProps } = props || {};
         const [open, setOpen] = React.useState(false);
         const [showFilter, setShowFilter] = React.useState(false);
+        // 当前选中条目（最近一次点击放置的）：蓝色高亮显示；面板关闭重开仍保留
+        const [selected, setSelected] = React.useState(-1);
         // 筛选状态提到这里：面板与筛选弹层共用同一份 state，点选即刻高亮
         const [filter, setFilter] = React.useState<FilterState>(persisted.filter);
         const pick = React.useCallback((i: number) => {
+            setSelected(i);
             (window as any).engine.trigger("ssp.select", i);
             // 保持面板打开（Find It 同款），可继续换选/连放
         }, []);
@@ -669,6 +680,7 @@ export const SSPToolbarIcon: ModuleRegistryExtend = (Component) => {
                                     <PanelBody
                                         onPick={pick}
                                         onClose={closeAll}
+                                        selected={selected}
                                         showFilter={showFilter}
                                         onToggleFilter={() => setShowFilter((s) => !s)}
                                         filter={filter}

@@ -24,14 +24,12 @@ namespace StaticSceneryPloppables
             if (GameManager.instance.modManager.TryGetExecutableAsset(this, out var asset))
                 log.Info($"Current mod asset at {asset.path}");
 
-            // 全量图章工厂 + 自有放置工具（ctrlC 同款注册相位）
+            // 全量目录工厂 + 自有放置工具（ctrlC 同款注册相位）
             updateSystem.UpdateAt<Systems.GrowableVariantSystem>(SystemUpdatePhase.Modification4B);
             updateSystem.UpdateAt<Tools.SceneryPlacementTool>(SystemUpdatePhase.ToolUpdate);
             updateSystem.UpdateAt<SceneryPloppableUISystem>(SystemUpdatePhase.UIUpdate);
-            // 孤儿地皮延迟删除（BetterBulldozer 同款 DeleteInXFrames 模式）
+            // 孤儿地皮延迟删除的遗留处理器（仅旧存档可能有待处理组件，见类注释）
             updateSystem.UpdateAt<Systems.HandleSSPDeleteInXFramesSystem>(SystemUpdatePhase.Modification4B);
-            // 注：放置阶段的地皮由「直接放置 + 引擎 Create 管线」创建；若个别建筑仍空地皮，
-            // 由 SceneryPloppableUISystem 的低频扫描补建（不再用每帧遍历全城的独立系统）。
 
             // 本地化：注册自己的词条（多语言），游戏切语言时字典随之切换
             try

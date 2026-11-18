@@ -9,8 +9,7 @@ namespace StaticSceneryPloppables.Localization
     /// 给「剥离版建筑」补 <c>Assets.NAME[...]</c> 词条，并在**切换语言时重新注入**。
     ///
     /// 背景：游戏的信息面板/悬停提示按 <c>"Assets.NAME[" + prefab.name + "]"</c> 查字典，
-    /// 查不到就把 key 原样显示（曾出现 <c>Assets.NAME[SSP_S_EU_Commercial...]</c>）。
-    /// 我们的 prefab 名字是 <c>SSP_S_&lt;原版名&gt;</c>，原版没有对应词条。
+    /// 查不到就把 key 原样显示。我们的 prefab 名字是 <c>SSP_S_&lt;原版名&gt;</c>，原版没有对应词条。
     ///
     /// 做法：记录「剥离版名 → 原版 prefab 的 titleId（如 Assets.NAME[EU_CommercialLow01_L2_5x6]）」，
     /// 注入时用当前语言的字典把 titleId 解析成文本，因此每次切换语言都能重新解析成新语言。
