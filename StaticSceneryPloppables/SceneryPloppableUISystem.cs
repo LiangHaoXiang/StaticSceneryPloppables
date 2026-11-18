@@ -145,9 +145,9 @@ namespace StaticSceneryPloppables
                     {
                         uri = current;
                     }
-                    else if (entry.IsSignature)
+                    else if (entry.IsSignature || entry.IsService)
                     {
-                        // 标志性建筑免 AIL：内置图标（Media/…svg 等静态资源）或图集缩略图都实际可渲染
+                        // 标志楼/服务建筑免 AIL：原版图集实测有图，内置图标或 thumbnail:// 都实际可渲染
                         uri = !string.IsNullOrEmpty(current)
                             ? current
                             : source.thumbnailUrl + "?width=128&height=128";

@@ -37,6 +37,7 @@ namespace StaticSceneryPloppables.Localization
             "Low", "Medium", "High", "Cells", "FilterNote",
             "MixedHousing", "Style", "European", "NorthAmerican",
             "LevelNote", "Signature",
+            "Education", "Healthcare", "FireRescue", "PoliceAdmin",
         };
 
         private static readonly Dictionary<Lang, string[]> Values = new Dictionary<Lang, string[]>
@@ -72,6 +73,10 @@ namespace StaticSceneryPloppables.Localization
                 "North American",
                 "Levels 2 and 4 look identical to 1 and 3, so they are not listed separately.",
                 "Signature",
+                "Education",
+                "Healthcare",
+                "Fire & Rescue",
+                "Police & Admin",
             },
             [Lang.ZH_HANS] = new[]
             {
@@ -104,6 +109,10 @@ namespace StaticSceneryPloppables.Localization
                 "北美",
                 "2/4 级外观与 1/3 级相同，故不单列。",
                 "标志性建筑",
+                "教育",
+                "医疗",
+                "消防",
+                "治安与行政",
             },
             [Lang.ZH_HANT] = new[]
             {
@@ -136,6 +145,10 @@ namespace StaticSceneryPloppables.Localization
                 "北美",
                 "2/4 級外觀與 1/3 級相同，故不單列。",
                 "標誌性建築",
+                "教育",
+                "醫療",
+                "消防",
+                "治安與行政",
             },
             [Lang.DE] = new[]
             {
@@ -168,6 +181,10 @@ namespace StaticSceneryPloppables.Localization
                 "Nordamerikanisch",
                 "Stufe 2/4 sieht genauso aus wie 1/3 und wird daher nicht separat aufgeführt.",
                 "Wahrzeichen",
+                "Bildung",
+                "Gesundheitswesen",
+                "Feuerwehr",
+                "Polizei & Verwaltung",
             },
             [Lang.FR] = new[]
             {
@@ -200,6 +217,10 @@ namespace StaticSceneryPloppables.Localization
                 "Nord-américain",
                 "Les niveaux 2/4 sont identiques aux niveaux 1/3, ils ne sont donc pas listés séparément.",
                 "Emblématique",
+                "Éducation",
+                "Santé",
+                "Pompiers",
+                "Police & Administration",
             },
             [Lang.ES] = new[]
             {
@@ -232,6 +253,10 @@ namespace StaticSceneryPloppables.Localization
                 "Norteamericano",
                 "Los niveles 2/4 son idénticos a 1/3, por eso no se listan por separado.",
                 "Emblemático",
+                "Educación",
+                "Sanidad",
+                "Bomberos",
+                "Policía y Administración",
             },
             [Lang.PT_BR] = new[]
             {
@@ -264,6 +289,10 @@ namespace StaticSceneryPloppables.Localization
                 "Norte-americano",
                 "Os níveis 2/4 são idênticos aos 1/3, por isso não são listados separadamente.",
                 "Emblemático",
+                "Educação",
+                "Saúde",
+                "Bombeiros",
+                "Polícia e Administração",
             },
             [Lang.RU] = new[]
             {
@@ -296,6 +325,10 @@ namespace StaticSceneryPloppables.Localization
                 "Североамериканский",
                 "Уровни 2/4 выглядят так же, как 1/3, поэтому не указаны отдельно.",
                 "Знаковое",
+                "Образование",
+                "Здравоохранение",
+                "Пожарная охрана",
+                "Полиция и администрация",
             },
             [Lang.PL] = new[]
             {
@@ -328,6 +361,10 @@ namespace StaticSceneryPloppables.Localization
                 "Północnoamerykański",
                 "Poziomy 2/4 wyglądają tak samo jak 1/3, dlatego nie są wymienione osobno.",
                 "Charakterystyczne",
+                "Edukacja",
+                "Ochrona zdrowia",
+                "Straż pożarna",
+                "Policja i administracja",
             },
             [Lang.JA] = new[]
             {
@@ -360,6 +397,10 @@ namespace StaticSceneryPloppables.Localization
                 "北米",
                 "レベル2/4は1/3と同じ外観のため、個別には表示されません。",
                 "ランドマーク",
+                "教育",
+                "医療",
+                "消防",
+                "治安・行政",
             },
             [Lang.KO] = new[]
             {
@@ -392,6 +433,10 @@ namespace StaticSceneryPloppables.Localization
                 "북미",
                 "레벨 2/4는 1/3과 동일한 외관이므로 별도로 표시하지 않습니다.",
                 "랜드마크",
+                "교육",
+                "의료",
+                "소방",
+                "치안·행정",
             },
         };
 

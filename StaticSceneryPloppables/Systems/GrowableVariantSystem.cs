@@ -14,19 +14,25 @@ using UnityEngine;
 namespace StaticSceneryPloppables.Systems
 {
     /// <summary>
-    /// 全量图章工厂：为每个原版分区建筑生成两件套——
-    /// ① 剥离版 BuildingPrefab（SSP_S_ 前缀，摘 SpawnableBuilding 等属性来源，
-    ///    保留网格/地皮声明 ObjectSubAreas/随机装饰 SpawnableObject）
-    /// ② AssetStampPrefab（SSP_ 前缀，子物体引用剥离版 + 整组复制地皮槽位）。
-    ///
-    /// 生成节奏：分帧预算（每 tick 处理 BatchSize 个），避免一次性 3619 组阻塞加载。
-    /// 激活一律经 Tools.SceneryPlacementTool（Mode.Stamp）；绝不用 ActivatePrefabTool（Create 模式=崩溃根因）。
-    /// 验证结论（2026-11-12 用户实测）：地皮跟随/地皮变体随机/装饰随机/存读档安全全部通过。
+    /// 目录工厂：为每个收录的原版建筑生成「剥离版 BuildingPrefab」（SSP_S_ 前缀，摘除属性来源组件，
+    /// 保留网格/地皮声明 ObjectSubAreas/随机装饰 SpawnableObject）并登记目录条目。
+    /// 收录范围：分区生长建筑（SpawnableBuilding）+ 标志性建筑（SignatureBuilding）
+    /// + 四类服务建筑（ServiceObject：教育/医疗/消防/治安行政）。
+    /// 生成节奏：分帧预算（每 tick ≤BatchSize 个且 ≤约 3ms）；放置一律经 SceneryPlacementTool（Create 模式）。
     /// </summary>
     public partial class GrowableVariantSystem : GameSystemBase
     {
         public const string Prefix = "SSP_";
         public const string StrippedPrefix = "SSP_S_";
+
+        /// <summary>收录的服务建筑 CityService 类别 → 面板页签 key（与前端 ZONE_TABS 对应）。</summary>
+        private static readonly Dictionary<Game.City.CityService, string> ServiceZones = new Dictionary<Game.City.CityService, string>
+        {
+            [Game.City.CityService.Education] = "Education",
+            [Game.City.CityService.HealthcareAndDeathcare] = "Healthcare",
+            [Game.City.CityService.FireAndRescue] = "FireRescue",
+            [Game.City.CityService.PoliceAndAdministration] = "PoliceAdmin",
+        };
 
         private const int BatchSize = 40;        // 每帧最多处理的建筑数
         private const double FrameBudgetMs = 3;  // 每帧在该系统上最多花的时间（ms）
@@ -49,7 +55,8 @@ namespace StaticSceneryPloppables.Systems
             public bool NameHasInfo;     // 名字里已含 Lx/宽x深 → UI 不再显示小字
             public string NameJson;      // 已转义的 JSON 字符串内容
             public string RawNameJson;
-            public bool IsSignature;     // 标志性建筑（当前不纳入目录，保留字段以支持排序第 6 级）
+            public bool IsSignature;     // 标志性建筑（密度单列 Signature 档）
+            public bool IsService;       // 服务建筑（四类之一；图标走原版图路径）
             public bool IsMixed;         // 混合型住宅（住宅属性 + 可售卖/可制造）
             public string Style;         // 风格："EU" / "NA" / ""（按 prefab 名前缀）
         }
@@ -142,6 +149,7 @@ namespace StaticSceneryPloppables.Systems
                 BuildComplete = true;
                 m_BuildSw?.Stop();
                 Mod.log.Warn($"[SSP] BUILD COMPLETE: {Catalog.Count} entries in catalog, build took {m_BuildSw?.ElapsedMilliseconds ?? 0}ms");
+                LogServiceSummary();
                 LogIconSummary();
                 // 给剥离版 prefab 补 Assets.NAME[...] 词条（否则信息面板/提示显示原始 key）
                 Localization.PrefabNamePatcher.SetMapping(PrefabTitleIds);
@@ -162,6 +170,26 @@ namespace StaticSceneryPloppables.Systems
 
                 Mod.log.Warn($"[SSP] progress: {Catalog.Count}/{TotalCandidates}");
             }
+        }
+
+        /// <summary>构建期自检：打印四类服务建筑各自命中数（任一为 0 需回查识别链路，见 docs/服务建筑接入方案.md）。</summary>
+        private void LogServiceSummary()
+        {
+            var counts = new Dictionary<string, int>();
+            for (int i = 0; i < Catalog.Count; i++)
+            {
+                var e = Catalog[i];
+                if (e.IsService)
+                {
+                    counts.TryGetValue(e.Zone, out int n);
+                    counts[e.Zone] = n + 1;
+                }
+            }
+
+            Mod.log.Warn("[SSP] service summary: Education=" + (counts.TryGetValue("Education", out var ed) ? ed : 0)
+                + " Healthcare=" + (counts.TryGetValue("Healthcare", out var hc) ? hc : 0)
+                + " FireRescue=" + (counts.TryGetValue("FireRescue", out var fr) ? fr : 0)
+                + " PoliceAdmin=" + (counts.TryGetValue("PoliceAdmin", out var pa) ? pa : 0));
         }
 
         /// <summary>构建期诊断：统计源建筑无图标快照的数量并抽样（仅写日志；面板显示不依赖这些快照）。</summary>
@@ -198,21 +226,33 @@ namespace StaticSceneryPloppables.Systems
                 foreach (var entity in entities)
                 {
                     PrefabBase prefab = SafeGetPrefab(entity);
-                    // #27：纳入标志性建筑——挂 SignatureBuilding 组件（无 SpawnableBuilding），
-                    // 实体侧同样由 LateInitialize 写入 SpawnableBuildingData（等级恒 5，见游戏源码）。
-                    if (prefab is BuildingPrefab bp
-                        && (bp.Has<SpawnableBuilding>() || bp.Has<SignatureBuilding>())
-                        && !bp.name.StartsWith(Prefix))
+                    if (prefab is not BuildingPrefab bp || bp.name.StartsWith(Prefix))
                     {
-                        // 等级去重：2 级外观同 1 级、4 级同 3 级 → 不建 prefab 也不进目录
-                        int level = LevelOf(bp);
-                        if (level == 2 || level == 4)
-                        {
-                            continue;
-                        }
-
-                        m_Pending.Add(bp);
+                        continue;
                     }
+
+                    if (bp.Has<SpawnableBuilding>() || bp.Has<SignatureBuilding>())
+                    {
+                        // #27：标志性建筑——挂 SignatureBuilding 组件（无 SpawnableBuilding），
+                        // 实体侧同样由 LateInitialize 写入 SpawnableBuildingData（等级恒 5，见游戏源码）。
+                    }
+                    else if (ServiceZoneOf(bp) != null)
+                    {
+                        // 服务建筑（四类之一）：等级恒 0，不参与 L2/L4 去重
+                    }
+                    else
+                    {
+                        continue;
+                    }
+
+                    // 等级去重：2 级外观同 1 级、4 级同 3 级 → 不建 prefab 也不进目录（仅分区生长建筑）
+                    int level = LevelOf(bp);
+                    if (level == 2 || level == 4)
+                    {
+                        continue;
+                    }
+
+                    m_Pending.Add(bp);
                 }
             }
             finally
@@ -277,9 +317,33 @@ namespace StaticSceneryPloppables.Systems
             Catalog.Add(entry);
         }
 
-        /// <summary>取建筑等级（SpawnableBuildingData.m_Level；取不到返回 0 表示不过滤）。</summary>
-        private int LevelOf(BuildingPrefab source)
+        /// <summary>
+        /// 解析服务建筑类别：ServiceObject → ServicePrefab 实体 → ServiceData.m_Service；
+        /// 返回页签 key，非四类收录范围（或非服务建筑）返回 null。
+        /// </summary>
+        private string ServiceZoneOf(BuildingPrefab source)
         {
+            try
+            {
+                if (source != null && source.TryGet<ServiceObject>(out var so) && so.m_Service != null
+                    && m_PrefabSystem.TryGetEntity(so.m_Service, out var svcEntity)
+                    && EntityManager.HasComponent<ServiceData>(svcEntity)
+                    && ServiceZones.TryGetValue(
+                        EntityManager.GetComponentData<ServiceData>(svcEntity).m_Service, out var key))
+                {
+                    return key;
+                }
+            }
+            catch
+            {
+                // 服务数据缺失按非收录建筑处理
+            }
+
+            return null;
+        }
+
+        /// <summary>取建筑等级（SpawnableBuildingData.m_Level；取不到返回 0 表示不过滤）。</summary>
+        private int LevelOf(BuildingPrefab source)        {
             try
             {
                 if (m_PrefabSystem.TryGetEntity(source, out var entity)
@@ -303,6 +367,7 @@ namespace StaticSceneryPloppables.Systems
             string density = "";
             int level = 0;
             bool isSignature = source.Has<SignatureBuilding>();
+            string serviceZone = isSignature ? null : ServiceZoneOf(source); // 服务页签 key（四类之一）
             string icon = SafeIcon(source); // 建目录时的快照；AIL 迟到时，UI 会按当前可见条目重读源 prefab
 
             try
@@ -351,6 +416,12 @@ namespace StaticSceneryPloppables.Systems
                 // 元数据缺失不阻塞目录
             }
 
+            // 服务建筑：Zone 直接用页签 key（教育/医疗/消防/治安行政），不参与密度与等级
+            if (serviceZone != null)
+            {
+                zone = serviceZone;
+            }
+
             var entry = new CatalogEntry
             {
                 Source = source,       // 原版源建筑引用：面板按可见项查询其当前 AIL 图标
@@ -370,6 +441,7 @@ namespace StaticSceneryPloppables.Systems
             entry.NameHasInfo = System.Text.RegularExpressions.Regex.IsMatch(
                 entry.Name ?? string.Empty, @"(L\d|\d+x\d)");
             entry.IsSignature = isSignature;
+            entry.IsService = serviceZone != null;
 
             // 风格：原版 prefab 名以 EU_ / NA_ 前缀区分欧美/北美，其余归入「全部」
             if (source.name.StartsWith("EU_"))
@@ -515,7 +587,7 @@ namespace StaticSceneryPloppables.Systems
                 return string.CompareOrdinal(a.RawName ?? string.Empty, b.RawName ?? string.Empty);
             }
 
-            /// <summary>分区顺序：纯住宅 0、混合居民区 1、商业 2、办公 3、工业 4、未知 5。</summary>
+            /// <summary>分区顺序：纯住宅 0、混合居民区 1、商业 2、办公 3、工业 4、教育 5、医疗 6、消防 7、治安行政 8、未知 9。</summary>
             private static int ZoneRank(CatalogEntry e)
             {
                 switch (e.Zone)
@@ -524,7 +596,11 @@ namespace StaticSceneryPloppables.Systems
                     case "Commercial": return 2;
                     case "Office": return 3;
                     case "Industrial": return 4;
-                    default: return 5;
+                    case "Education": return 5;
+                    case "Healthcare": return 6;
+                    case "FireRescue": return 7;
+                    case "PoliceAdmin": return 8;
+                    default: return 9;
                 }
             }
 
@@ -740,10 +816,10 @@ namespace StaticSceneryPloppables.Systems
                 // 面板自身不依赖它（走 ssp.requestOptionalIcon 的 AIL 查询 + 分区图兜底）。
                 if (clone.TryGet<UIObject>(out var uiObject))
                 {
-                    // #27：源标志楼的 UIObject.m_Group 指向原版「标志性建筑」UI 分组；克隆若保留，
-                    // 会在注册时被加进该分组（UIObject.LateInitialize → m_Group.AddElement）→
-                    // 激活放置工具时呼出原版标志性建筑面板，且克隆会混入里程碑选楼列表 → 与分组脱钩。
-                    if (src.Has<SignatureBuilding>() && uiObject.m_Group != null)
+                    // 克隆一律与原版 UI 分组脱钩：源建筑（标志楼/服务建筑等）的 UIObject.m_Group
+                    // 指向原版菜单分组，注册时会被 m_Group.AddElement() 收进该分组 →
+                    // 激活放置工具会呼出原版对应面板，克隆也会混入原版菜单/选楼列表。
+                    if (uiObject.m_Group != null)
                     {
                         uiObject.m_Group = null;
                     }

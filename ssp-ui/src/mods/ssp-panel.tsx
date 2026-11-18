@@ -34,7 +34,17 @@ const ZONE_TABS: { key: string; labelKey: string }[] = [
     { key: "Commercial", labelKey: "Commercial" },
     { key: "Office", labelKey: "Office" },
     { key: "Industrial", labelKey: "Industrial" },
+    { key: "Education", labelKey: "Education" },
+    { key: "Healthcare", labelKey: "Healthcare" },
+    { key: "FireRescue", labelKey: "FireRescue" },
+    { key: "PoliceAdmin", labelKey: "PoliceAdmin" },
 ];
+/** 分区页签：风格/密度/等级三行筛选仅在这类页签下显示且生效 */
+const ZONED_TABS = ["Residential", "MixedHousing", "Commercial", "Office", "Industrial"];
+/** 服务页签（条目 Zone 值即页签 key；小字与图标规则据此判定） */
+const SERVICE_ZONES = ["Education", "Healthcare", "FireRescue", "PoliceAdmin"];
+/** 风格/密度/等级只在分区页签下生效；隐藏时已选值保留但不参与过滤（切回自动恢复） */
+const zonedFilterActive = (z: string) => ZONED_TABS.includes(z);
 /** 风格筛选：欧美 / 北美（按 prefab 名前缀，C# 侧已归好类） */
 const STYLE_OPTS: { key: string; labelKey: string }[] = [
     { key: "", labelKey: "All" },
@@ -46,7 +56,9 @@ const DENSITY_LABEL = (L: LFn): Record<string, string> =>
     ({ "": L("All"), Low: L("Low"), Medium: L("Medium"), High: L("High"), Signature: L("Signature") });
 // 只保留 1/3/5 级：2 级外观与 1 级相同、4 级与 3 级相同（C# 侧也已按此裁剪目录）
 const LEVEL_OPTS = [0, 1, 3, 5];
-const SIZE_OPTS = [0, 2, 3, 4, 5, 6];
+/** 面宽/进深选项；GT_SIZE=-1 是「>6格」哨兵值（尺寸均为正数，-1 无歧义） */
+const GT_SIZE = -1;
+const SIZE_OPTS = [0, 2, 3, 4, 5, 6, GT_SIZE];
 
 /* 内置分区图标：随模组打包（coui://ui-mods/images/...），一定加载成功、无渲染开销 */
 const ZONE_ICONS: Record<string, string> = {
@@ -72,6 +84,7 @@ const FALLBACK_EN: Record<string, string> = {
     FilterNote: "Applies on top of the search box; closing this panel keeps the selection.",
     LevelNote: "Levels 2 and 4 look identical to 1 and 3, so they are not listed separately.",
     Signature: "Signature",
+    Education: "Education", Healthcare: "Healthcare", FireRescue: "Fire & Rescue", PoliceAdmin: "Police & Admin",
 };
 
 type LFn = (key: string, a0?: any, a1?: any, a2?: any) => string;
@@ -139,11 +152,16 @@ function matchesFilter(it: CatalogItem, f: FilterState, query: string): boolean 
     if (f.z === "Residential") { if (it.z !== "Residential" || it.mx) return false; }
     else if (f.z === "MixedHousing") { if (it.z !== "Residential" || !it.mx) return false; }
     else if (f.z && it.z !== f.z) return false;
-    if (f.s && it.st !== f.s) return false;
-    if (f.d && it.d !== f.d) return false;
-    if (f.l > 0 && it.l !== f.l) return false;
-    if (f.w > 0 && it.w !== f.w) return false;
-    if (f.dp > 0 && it.dp !== f.dp) return false;
+    // 风格/密度/等级仅分区页签下生效（其它页签隐藏即暂停，已选值保留）；面宽/进深恒生效
+    if (zonedFilterActive(f.z)) {
+        if (f.s && it.st !== f.s) return false;
+        if (f.d && it.d !== f.d) return false;
+        if (f.l > 0 && it.l !== f.l) return false;
+    }
+    if (f.w === GT_SIZE) { if (it.w <= 6) return false; }
+    else if (f.w > 0 && it.w !== f.w) return false;
+    if (f.dp === GT_SIZE) { if (it.dp <= 6) return false; }
+    else if (f.dp > 0 && it.dp !== f.dp) return false;
     if (query && it.sb.indexOf(query) < 0) return false;
     return true;
 }
@@ -271,8 +289,9 @@ const ResultRow = React.memo(function ResultRow(props: { item: CatalogItem; ailI
                     color: selected ? "rgba(20,27,34,0.75)" : "#7d9bb5",
                     fontSize: "9rem", whiteSpace: "nowrap",
                 }}>
-                    {/* 标志性建筑等级恒 5，无需显示 L5（#27 用户反馈） */}
-                    {item.d === "Signature" ? `${item.w}x${item.dp}` : `L${item.l}　${item.w}x${item.dp}`}
+                    {/* 标志性建筑（等级恒 5）与服务建筑（等级恒 0）不显示等级，只显示尺寸 */}
+                    {(item.d === "Signature" || SERVICE_ZONES.includes(item.z))
+                        ? `${item.w}x${item.dp}` : `L${item.l}　${item.w}x${item.dp}`}
                 </div>
             )}
         </div>
@@ -491,8 +510,8 @@ function PanelBody(props: {
                         onClick={props.onToggleFilter} />
                 </div>
 
-                {/* 类型页签 */}
-                <div style={{ display: "flex", gap: "6rem" }}>
+                {/* 类型页签（10 个，超出单行宽度自动折行） */}
+                <div style={{ display: "flex", gap: "6rem", flexWrap: "wrap" }}>
                     {ZONE_TABS.map((t) => (
                         <Chip key={t.key} label={L(t.labelKey)} active={filter.z === t.key}
                             onClick={() => props.onFilterChange({ ...filter, z: t.key })} />
@@ -578,9 +597,12 @@ function chunk<T>(arr: T[], count: number): T[][] {
 function FilterPanel(props: { filter: FilterState; apply: (next: FilterState) => void; onClose: () => void }) {
     const { filter, apply } = props;
     const L = useText();
+    // 风格/密度/等级三行仅分区页签下显示（此时过滤也生效）；面宽/进深恒显示
+    const zoned = zonedFilterActive(filter.z);
     return (
         <Panel header={L("FilterTitle")} onClose={props.onClose} style={{ width: "470rem" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "6rem", padding: "10rem" }}>
+                {zoned && (<>
                 <div style={{ display: "flex", gap: "6rem", alignItems: "center" }}>
                     <span style={{ color: "#7d9bb5", fontSize: "11rem", width: "52rem" }}>{L("Style")}</span>
                     {STYLE_OPTS.map((s) => (
@@ -595,6 +617,8 @@ function FilterPanel(props: { filter: FilterState; apply: (next: FilterState) =>
                             onClick={() => apply({ ...filter, d })} />
                     ))}
                 </div>
+                </>)}
+                {zoned && (
                 <div style={{ display: "flex", gap: "6rem", alignItems: "center" }}>
                     {/* #20：悬停「等级」标签说明为何只有 1/3/5（原版 2/4 级外观与 1/3 相同，目录侧已裁剪） */}
                     <Tooltip tooltip={L("LevelNote")}>
@@ -605,17 +629,18 @@ function FilterPanel(props: { filter: FilterState; apply: (next: FilterState) =>
                             onClick={() => apply({ ...filter, l })} />
                     ))}
                 </div>
+                )}
                 <div style={{ display: "flex", gap: "6rem", alignItems: "center" }}>
                     <span style={{ color: "#7d9bb5", fontSize: "11rem", width: "52rem" }}>{L("Width")}</span>
                     {SIZE_OPTS.map((w) => (
-                        <Chip key={w} label={w === 0 ? L("All") : L("Cells", w)} active={filter.w === w}
+                        <Chip key={w} label={w === 0 ? L("All") : L("Cells", w === GT_SIZE ? ">6" : w)} active={filter.w === w}
                             onClick={() => apply({ ...filter, w })} />
                     ))}
                 </div>
                 <div style={{ display: "flex", gap: "6rem", alignItems: "center" }}>
                     <span style={{ color: "#7d9bb5", fontSize: "11rem", width: "52rem" }}>{L("Depth")}</span>
                     {SIZE_OPTS.map((dp) => (
-                        <Chip key={dp} label={dp === 0 ? L("All") : L("Cells", dp)} active={filter.dp === dp}
+                        <Chip key={dp} label={dp === 0 ? L("All") : L("Cells", dp === GT_SIZE ? ">6" : dp)} active={filter.dp === dp}
                             onClick={() => apply({ ...filter, dp })} />
                     ))}
                 </div>
