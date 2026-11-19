@@ -27,17 +27,17 @@ interface CatalogItem {
 interface CatalogPayload { total: number; complete: boolean; items: any[]; }
 interface FilterState { z: string; s: string; d: string; l: number; w: number; dp: number; }
 
-const ZONE_TABS: { key: string; labelKey: string }[] = [
-    { key: "", labelKey: "All" },
-    { key: "Residential", labelKey: "Residential" },
-    { key: "MixedHousing", labelKey: "MixedHousing" },
-    { key: "Commercial", labelKey: "Commercial" },
-    { key: "Office", labelKey: "Office" },
-    { key: "Industrial", labelKey: "Industrial" },
-    { key: "Education", labelKey: "Education" },
-    { key: "Healthcare", labelKey: "Healthcare" },
-    { key: "FireRescue", labelKey: "FireRescue" },
-    { key: "PoliceAdmin", labelKey: "PoliceAdmin" },
+const ZONE_TABS: { key: string; labelKey: string; icon: string }[] = [
+    { key: "", labelKey: "All", icon: "Media/Tools/Snap Options/All.svg" },
+    { key: "Residential", labelKey: "Residential", icon: "Media/Game/Icons/ZoneResidential.svg" },
+    { key: "MixedHousing", labelKey: "MixedHousing", icon: "Media/Game/Icons/ZoneResidentialMixed.svg" },
+    { key: "Commercial", labelKey: "Commercial", icon: "Media/Game/Icons/ZoneCommercial.svg" },
+    { key: "Office", labelKey: "Office", icon: "Media/Game/Icons/ZoneOffice.svg" },
+    { key: "Industrial", labelKey: "Industrial", icon: "Media/Game/Icons/ZoneIndustrial.svg" },
+    { key: "Education", labelKey: "Education", icon: "Media/Game/Icons/Education.svg" },
+    { key: "Healthcare", labelKey: "Healthcare", icon: "Media/Game/Icons/Healthcare.svg" },
+    { key: "FireRescue", labelKey: "FireRescue", icon: "Media/Game/Icons/FireSafety.svg" },
+    { key: "PoliceAdmin", labelKey: "PoliceAdmin", icon: "Media/Game/Icons/Police.svg" },
 ];
 /** 分区页签：风格/密度/等级三行筛选仅在这类页签下显示且生效 */
 const ZONED_TABS = ["Residential", "MixedHousing", "Commercial", "Office", "Industrial"];
@@ -238,6 +238,28 @@ function Chip(props: { label: string; active: boolean; onClick: () => void }) {
                 fontSize: "12rem", whiteSpace: "nowrap", border: "1rem solid rgba(75,195,241,0.35)",
             }}
         >{label}</div>
+    );
+}
+
+/** 图标页签：与 Chip 同款选中蓝底；悬停 Tooltip 显示原名（原版图标为白色填充，深/蓝底均清晰） */
+function IconTab(props: { icon: string; label: string; active: boolean; onClick: () => void }) {
+    const { icon, label, active, onClick } = props;
+    const [hover, setHover] = React.useState(false);
+    const bg = active ? "#4bc3f1" : hover ? "rgba(75,195,241,0.25)" : "rgba(34,49,65,0.9)";
+    return (
+        <Tooltip tooltip={label}>
+            <div
+                onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} onClick={onClick}
+                style={{
+                    width: "34rem", height: "34rem", display: "flex",
+                    alignItems: "center", justifyContent: "center",
+                    borderRadius: "12rem", cursor: "pointer",
+                    backgroundColor: bg, border: "1rem solid rgba(75,195,241,0.35)",
+                }}
+            >
+                <img src={icon} alt={label} style={{ width: "24rem", height: "24rem" }} />
+            </div>
+        </Tooltip>
     );
 }
 
@@ -510,10 +532,10 @@ function PanelBody(props: {
                         onClick={props.onToggleFilter} />
                 </div>
 
-                {/* 类型页签（10 个，超出单行宽度自动折行） */}
+                {/* 类型页签：图标形式（原版分区/服务图标），悬停 Tooltip 显示原名 */}
                 <div style={{ display: "flex", gap: "6rem", flexWrap: "wrap" }}>
                     {ZONE_TABS.map((t) => (
-                        <Chip key={t.key} label={L(t.labelKey)} active={filter.z === t.key}
+                        <IconTab key={t.key} icon={t.icon} label={L(t.labelKey)} active={filter.z === t.key}
                             onClick={() => props.onFilterChange({ ...filter, z: t.key })} />
                     ))}
                 </div>
