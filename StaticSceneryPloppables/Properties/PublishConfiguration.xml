@@ -71,6 +71,7 @@ Every placement looks exactly like the real thing - the same building with its p
 	<Screenshot Value="..\assets\publish\place2.jpg" />
 	<Screenshot Value="..\assets\publish\place3.jpg" />
 	<Screenshot Value="..\assets\publish\place4.jpg" />
+	<Screenshot Value="..\assets\publish\place5.jpg" />
 	<!--Tags-->
 	<Tag Value="Code Mod" />
 	<!--Forum thread link (optional)-->
