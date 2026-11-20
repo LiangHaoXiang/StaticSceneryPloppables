@@ -38,11 +38,13 @@ const ZONE_TABS: { key: string; labelKey: string; icon: string }[] = [
     { key: "Healthcare", labelKey: "Healthcare", icon: "Media/Game/Icons/Healthcare.svg" },
     { key: "FireRescue", labelKey: "FireRescue", icon: "Media/Game/Icons/FireSafety.svg" },
     { key: "PoliceAdmin", labelKey: "PoliceAdmin", icon: "Media/Game/Icons/Police.svg" },
+    { key: "Communications", labelKey: "Communications", icon: "Media/Game/Icons/Communications.svg" },
+    { key: "Parks", labelKey: "Parks", icon: "Media/Game/Icons/ParksAndRecreation.svg" },
 ];
 /** 分区页签：风格/密度/等级三行筛选仅在这类页签下显示且生效 */
 const ZONED_TABS = ["Residential", "MixedHousing", "Commercial", "Office", "Industrial"];
 /** 服务页签（条目 Zone 值即页签 key；小字与图标规则据此判定） */
-const SERVICE_ZONES = ["Education", "Healthcare", "FireRescue", "PoliceAdmin"];
+const SERVICE_ZONES = ["Education", "Healthcare", "FireRescue", "PoliceAdmin", "Communications", "Parks"];
 /** 风格/密度/等级只在分区页签下生效；隐藏时已选值保留但不参与过滤（切回自动恢复） */
 const zonedFilterActive = (z: string) => ZONED_TABS.includes(z);
 /** 风格筛选：欧美 / 北美（按 prefab 名前缀，C# 侧已归好类） */
@@ -85,6 +87,7 @@ const FALLBACK_EN: Record<string, string> = {
     LevelNote: "Levels 2 and 4 look identical to 1 and 3, so they are not listed separately.",
     Signature: "Signature",
     Education: "Education", Healthcare: "Healthcare", FireRescue: "Fire & Rescue", PoliceAdmin: "Police & Admin",
+    Communications: "Communications", Parks: "Parks",
 };
 
 type LFn = (key: string, a0?: any, a1?: any, a2?: any) => string;

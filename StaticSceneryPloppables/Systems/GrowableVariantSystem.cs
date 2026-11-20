@@ -17,7 +17,7 @@ namespace StaticSceneryPloppables.Systems
     /// 目录工厂：为每个收录的原版建筑生成「剥离版 BuildingPrefab」（SSP_S_ 前缀，摘除属性来源组件，
     /// 保留网格/地皮声明 ObjectSubAreas/随机装饰 SpawnableObject）并登记目录条目。
     /// 收录范围：分区生长建筑（SpawnableBuilding）+ 标志性建筑（SignatureBuilding）
-    /// + 四类服务建筑（ServiceObject：教育/医疗/消防/治安行政）。
+    /// + 六类服务建筑（ServiceObject：教育/医疗/消防/治安行政/通讯/公园）。
     /// 生成节奏：分帧预算（每 tick ≤BatchSize 个且 ≤约 3ms）；放置一律经 SceneryPlacementTool（Create 模式）。
     /// </summary>
     public partial class GrowableVariantSystem : GameSystemBase
@@ -32,6 +32,8 @@ namespace StaticSceneryPloppables.Systems
             [Game.City.CityService.HealthcareAndDeathcare] = "Healthcare",
             [Game.City.CityService.FireAndRescue] = "FireRescue",
             [Game.City.CityService.PoliceAndAdministration] = "PoliceAdmin",
+            [Game.City.CityService.Communications] = "Communications",
+            [Game.City.CityService.ParksAndRecreation] = "Parks",
         };
 
         private const int BatchSize = 40;        // 每帧最多处理的建筑数
@@ -172,7 +174,7 @@ namespace StaticSceneryPloppables.Systems
             }
         }
 
-        /// <summary>构建期自检：打印四类服务建筑各自命中数（任一为 0 需回查识别链路，见 docs/服务建筑接入方案.md）。</summary>
+        /// <summary>构建期自检：按 ServiceZones 顺序打印各类服务建筑命中数（任一为 0 需回查识别链路）。</summary>
         private void LogServiceSummary()
         {
             var counts = new Dictionary<string, int>();
@@ -186,10 +188,15 @@ namespace StaticSceneryPloppables.Systems
                 }
             }
 
-            Mod.log.Warn("[SSP] service summary: Education=" + (counts.TryGetValue("Education", out var ed) ? ed : 0)
-                + " Healthcare=" + (counts.TryGetValue("Healthcare", out var hc) ? hc : 0)
-                + " FireRescue=" + (counts.TryGetValue("FireRescue", out var fr) ? fr : 0)
-                + " PoliceAdmin=" + (counts.TryGetValue("PoliceAdmin", out var pa) ? pa : 0));
+            // 跟随 ServiceZones 配置动态输出，新增类别无需改这里
+            var sb = new System.Text.StringBuilder("[SSP] service summary:");
+            foreach (var zone in ServiceZones.Values)
+            {
+                counts.TryGetValue(zone, out int n);
+                sb.Append(' ').Append(zone).Append('=').Append(n);
+            }
+
+            Mod.log.Warn(sb.ToString());
         }
 
         /// <summary>构建期诊断：统计源建筑无图标快照的数量并抽样（仅写日志；面板显示不依赖这些快照）。</summary>
@@ -587,7 +594,7 @@ namespace StaticSceneryPloppables.Systems
                 return string.CompareOrdinal(a.RawName ?? string.Empty, b.RawName ?? string.Empty);
             }
 
-            /// <summary>分区顺序：纯住宅 0、混合居民区 1、商业 2、办公 3、工业 4、教育 5、医疗 6、消防 7、治安行政 8、未知 9。</summary>
+            /// <summary>分区顺序：纯住宅 0、混合居民区 1、商业 2、办公 3、工业 4、教育 5、医疗 6、消防 7、治安行政 8、通讯 9、公园 10、未知 11。</summary>
             private static int ZoneRank(CatalogEntry e)
             {
                 switch (e.Zone)
@@ -600,7 +607,9 @@ namespace StaticSceneryPloppables.Systems
                     case "Healthcare": return 6;
                     case "FireRescue": return 7;
                     case "PoliceAdmin": return 8;
-                    default: return 9;
+                    case "Communications": return 9;
+                    case "Parks": return 10;
+                    default: return 11;
                 }
             }
 
