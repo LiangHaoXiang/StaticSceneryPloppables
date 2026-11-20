@@ -10,6 +10,9 @@ namespace StaticSceneryPloppables
         public static ILog log = LogManager.GetLogger($"{nameof(StaticSceneryPloppables)}.{nameof(Mod)}")
             .SetShowsErrorsInUI(false);
 
+        /// <summary>信息面板「用户创作内容」卡：原生 PdxMods 渲染器按此 ID 实时取卡片数据。</summary>
+        public const string ModIdString = "167410";
+
         /// <summary>
         /// 详细诊断（实体树 dump、每轮扫描摘要、逐块地皮距离）开关。
         /// 默认关闭：这些日志每轮都要拼字符串并写盘，会明显拖慢帧率。
@@ -28,6 +31,11 @@ namespace StaticSceneryPloppables
             updateSystem.UpdateAt<Systems.GrowableVariantSystem>(SystemUpdatePhase.Modification4B);
             updateSystem.UpdateAt<Tools.SceneryPlacementTool>(SystemUpdatePhase.ToolUpdate);
             updateSystem.UpdateAt<SceneryPloppableUISystem>(SystemUpdatePhase.UIUpdate);
+
+            // 信息面板「用户创作内容」文本卡（#35）：驱动 OnUpdate + 挂入原版中区 section 列表
+            updateSystem.UpdateAt<SspModInfoSection>(SystemUpdatePhase.UIUpdate);
+            updateSystem.World.GetOrCreateSystemManaged<Game.UI.InGame.SelectedInfoUISystem>()
+                .AddMiddleSection(updateSystem.World.GetOrCreateSystemManaged<SspModInfoSection>());
 
             // 本地化：注册自己的词条（多语言），游戏切语言时字典随之切换
             try

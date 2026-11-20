@@ -39,7 +39,7 @@ namespace StaticSceneryPloppables.Localization
             "LevelNote", "Signature",
             "Education", "Healthcare", "FireRescue", "PoliceAdmin",
             "Communications", "Parks",
-        };
+                                };
 
         private static readonly Dictionary<Lang, string[]> Values = new Dictionary<Lang, string[]>
         {
@@ -80,7 +80,7 @@ namespace StaticSceneryPloppables.Localization
                 "Police & Admin",
                 "Communications",
                 "Parks",
-            },
+                                                                                                                            },
             [Lang.ZH_HANS] = new[]
             {
                 "静态造景建筑",
@@ -118,7 +118,7 @@ namespace StaticSceneryPloppables.Localization
                 "治安与行政",
                 "通讯",
                 "公园",
-            },
+                                                                                                                            },
             [Lang.ZH_HANT] = new[]
             {
                 "靜態造景建築",
@@ -156,7 +156,7 @@ namespace StaticSceneryPloppables.Localization
                 "治安與行政",
                 "通訊",
                 "公園",
-            },
+                                                                                            },
             [Lang.DE] = new[]
             {
                 "Statische Kulissen-Gebäude",
@@ -194,7 +194,7 @@ namespace StaticSceneryPloppables.Localization
                 "Polizei & Verwaltung",
                 "Postwesen",
                 "Parks",
-            },
+                                                                                                                            },
             [Lang.FR] = new[]
             {
                 "Bâtiments de décor statique",
@@ -232,7 +232,7 @@ namespace StaticSceneryPloppables.Localization
                 "Police & Administration",
                 "Communications",
                 "Parcs",
-            },
+                                                                                                                            },
             [Lang.ES] = new[]
             {
                 "Edificios de decorado estático",
@@ -270,7 +270,7 @@ namespace StaticSceneryPloppables.Localization
                 "Policía y Administración",
                 "Comunicaciones",
                 "Parques",
-            },
+                                                                                                                            },
             [Lang.PT_BR] = new[]
             {
                 "Edifícios de cenário estático",
@@ -308,7 +308,7 @@ namespace StaticSceneryPloppables.Localization
                 "Polícia e Administração",
                 "Comunicações",
                 "Parques",
-            },
+                                                                                                                            },
             [Lang.RU] = new[]
             {
                 "Статичные декоративные здания",
@@ -346,7 +346,7 @@ namespace StaticSceneryPloppables.Localization
                 "Полиция и администрация",
                 "Связь",
                 "Парки",
-            },
+                                                                                                                            },
             [Lang.PL] = new[]
             {
                 "Statyczne budynki dekoracyjne",
@@ -384,7 +384,7 @@ namespace StaticSceneryPloppables.Localization
                 "Policja i administracja",
                 "Łączność",
                 "Parki",
-            },
+                                                                                                                            },
             [Lang.JA] = new[]
             {
                 "静的景観ビル",
@@ -422,7 +422,7 @@ namespace StaticSceneryPloppables.Localization
                 "治安・行政",
                 "通信",
                 "公園",
-            },
+                                                                                                                            },
             [Lang.KO] = new[]
             {
                 "정적 조경 건물",
@@ -460,7 +460,7 @@ namespace StaticSceneryPloppables.Localization
                 "치안·행정",
                 "통신",
                 "공원",
-            },
+                                                                                                                            },
         };
 
         private readonly Dictionary<string, string> m_Entries;
