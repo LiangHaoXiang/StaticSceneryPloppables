@@ -38,7 +38,7 @@ namespace StaticSceneryPloppables.Localization
             "MixedHousing", "Style", "European", "NorthAmerican",
             "LevelNote", "Signature",
             "Education", "Healthcare", "FireRescue", "PoliceAdmin",
-            "Communications", "Parks",
+            "Communications", "Transportation", "Parks", "Garbage",
                                 };
 
         private static readonly Dictionary<Lang, string[]> Values = new Dictionary<Lang, string[]>
@@ -79,7 +79,9 @@ namespace StaticSceneryPloppables.Localization
                 "Fire & Rescue",
                 "Police & Admin",
                 "Communications",
+                "Transportation",
                 "Parks",
+                "Garbage",
                                                                                                                             },
             [Lang.ZH_HANS] = new[]
             {
@@ -117,7 +119,9 @@ namespace StaticSceneryPloppables.Localization
                 "消防",
                 "治安与行政",
                 "通讯",
+                "交通运输",
                 "公园",
+                "垃圾回收",
                                                                                                                             },
             [Lang.ZH_HANT] = new[]
             {
@@ -155,7 +159,9 @@ namespace StaticSceneryPloppables.Localization
                 "消防",
                 "治安與行政",
                 "通訊",
+                "交通運輸",
                 "公園",
+                "垃圾回收",
                                                                                             },
             [Lang.DE] = new[]
             {
@@ -193,7 +199,9 @@ namespace StaticSceneryPloppables.Localization
                 "Feuerwehr",
                 "Polizei & Verwaltung",
                 "Postwesen",
+                "Verkehr",
                 "Parks",
+                "Müllentsorgung",
                                                                                                                             },
             [Lang.FR] = new[]
             {
@@ -231,7 +239,9 @@ namespace StaticSceneryPloppables.Localization
                 "Pompiers",
                 "Police & Administration",
                 "Communications",
+                "Transports",
                 "Parcs",
+                "Déchets",
                                                                                                                             },
             [Lang.ES] = new[]
             {
@@ -269,7 +279,9 @@ namespace StaticSceneryPloppables.Localization
                 "Bomberos",
                 "Policía y Administración",
                 "Comunicaciones",
+                "Transporte",
                 "Parques",
+                "Residuos",
                                                                                                                             },
             [Lang.PT_BR] = new[]
             {
@@ -307,7 +319,9 @@ namespace StaticSceneryPloppables.Localization
                 "Bombeiros",
                 "Polícia e Administração",
                 "Comunicações",
+                "Transporte",
                 "Parques",
+                "Lixo",
                                                                                                                             },
             [Lang.RU] = new[]
             {
@@ -345,7 +359,9 @@ namespace StaticSceneryPloppables.Localization
                 "Пожарная охрана",
                 "Полиция и администрация",
                 "Связь",
+                "Транспорт",
                 "Парки",
+                "Мусор",
                                                                                                                             },
             [Lang.PL] = new[]
             {
@@ -383,7 +399,9 @@ namespace StaticSceneryPloppables.Localization
                 "Straż pożarna",
                 "Policja i administracja",
                 "Łączność",
+                "Transport",
                 "Parki",
+                "Odpady",
                                                                                                                             },
             [Lang.JA] = new[]
             {
@@ -421,7 +439,9 @@ namespace StaticSceneryPloppables.Localization
                 "消防",
                 "治安・行政",
                 "通信",
+                "交通",
                 "公園",
+                "ゴミ",
                                                                                                                             },
             [Lang.KO] = new[]
             {
@@ -459,7 +479,9 @@ namespace StaticSceneryPloppables.Localization
                 "소방",
                 "치안·행정",
                 "통신",
+                "교통",
                 "공원",
+                "쓰레기",
                                                                                                                             },
         };
 

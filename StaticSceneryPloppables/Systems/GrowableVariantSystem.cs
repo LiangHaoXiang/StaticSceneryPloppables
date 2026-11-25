@@ -17,7 +17,7 @@ namespace StaticSceneryPloppables.Systems
     /// 目录工厂：为每个收录的原版建筑生成「剥离版 BuildingPrefab」（SSP_S_ 前缀，摘除属性来源组件，
     /// 保留网格/地皮声明 ObjectSubAreas/随机装饰 SpawnableObject）并登记目录条目。
     /// 收录范围：分区生长建筑（SpawnableBuilding）+ 标志性建筑（SignatureBuilding）
-    /// + 六类服务建筑（ServiceObject：教育/医疗/消防/治安行政/通讯/公园）。
+    /// + 八类服务建筑（ServiceObject：教育/医疗/垃圾/消防/治安行政/通讯/交通/公园）。
     /// 生成节奏：分帧预算（每 tick ≤BatchSize 个且 ≤约 3ms）；放置一律经 SceneryPlacementTool（Create 模式）。
     /// </summary>
     public partial class GrowableVariantSystem : GameSystemBase
@@ -30,9 +30,11 @@ namespace StaticSceneryPloppables.Systems
         {
             [Game.City.CityService.Education] = "Education",
             [Game.City.CityService.HealthcareAndDeathcare] = "Healthcare",
+            [Game.City.CityService.GarbageManagement] = "Garbage",
             [Game.City.CityService.FireAndRescue] = "FireRescue",
             [Game.City.CityService.PoliceAndAdministration] = "PoliceAdmin",
             [Game.City.CityService.Communications] = "Communications",
+            [Game.City.CityService.Transportation] = "Transportation",
             [Game.City.CityService.ParksAndRecreation] = "Parks",
         };
 
@@ -594,7 +596,7 @@ namespace StaticSceneryPloppables.Systems
                 return string.CompareOrdinal(a.RawName ?? string.Empty, b.RawName ?? string.Empty);
             }
 
-            /// <summary>分区顺序：纯住宅 0、混合居民区 1、商业 2、办公 3、工业 4、教育 5、医疗 6、消防 7、治安行政 8、通讯 9、公园 10、未知 11。</summary>
+            /// <summary>分区顺序：住宅 0、混合 1、商业 2、办公 3、工业 4、教育 5、医疗 6、垃圾 7、消防 8、治安行政 9、通讯 10、交通 11、公园 12、未知 13。</summary>
             private static int ZoneRank(CatalogEntry e)
             {
                 switch (e.Zone)
@@ -605,11 +607,13 @@ namespace StaticSceneryPloppables.Systems
                     case "Industrial": return 4;
                     case "Education": return 5;
                     case "Healthcare": return 6;
-                    case "FireRescue": return 7;
-                    case "PoliceAdmin": return 8;
-                    case "Communications": return 9;
-                    case "Parks": return 10;
-                    default: return 11;
+                    case "Garbage": return 7;
+                    case "FireRescue": return 8;
+                    case "PoliceAdmin": return 9;
+                    case "Communications": return 10;
+                    case "Transportation": return 11;
+                    case "Parks": return 12;
+                    default: return 13;
                 }
             }
 
@@ -810,8 +814,60 @@ namespace StaticSceneryPloppables.Systems
 
                 CopyComponentIfPresent<ObjectSubAreas>(src, clone);       // 地皮表面声明（占位 AreaPrefab+节点）
                 CopyComponentIfPresent<ObjectSubObjects>(src, clone);     // 静态装饰子物体声明
-                CopyComponentIfPresent<ObjectSubNets>(src, clone);        // 装饰线网声明
+
+                // 过滤路由标记类子物体：站台标记（TransportStop）等隐形 marker 带路由连接声明
+                // （如火车站台「轨道进/行人出」）→ 放置校验 ValidateStop 找不到轨道/道路车道时
+                // 弹 NoTrackAccess/NoRoadAccess 并阻止放置。标记无网格无装饰，删除零视觉变化；
+                // 保留 ParkingSpace（停车功能已验证依赖）。浅拷贝共享数组 → 新建数组赋回。
+                if (clone.TryGet<ObjectSubObjects>(out var subObjs) && subObjs.m_SubObjects != null && subObjs.m_SubObjects.Length > 0)
+                {
+                    var keptObjs = new List<ObjectSubObjectInfo>(subObjs.m_SubObjects.Length);
+                    foreach (var so in subObjs.m_SubObjects)
+                    {
+                        var op = so.m_Object;
+                        if (op != null && (op.Has<TransportStop>() || op.Has<WorkStop>()
+                            || op.Has<TakeoffLocation>() || op.Has<MailBox>()))
+                        {
+                            continue;
+                        }
+
+                        keptObjs.Add(so);
+                    }
+
+                    if (keptObjs.Count != subObjs.m_SubObjects.Length)
+                    {
+                        subObjs.m_SubObjects = keptObjs.ToArray();
+                    }
+                }
+
+                CopyComponentIfPresent<ObjectSubNets>(src, clone);        // 附属线网声明（车道/路径/轨道/输电线等）
                 CopyComponentIfPresent<SpawnableObject>(src, clone);      // 随机装饰组（概率+随机组）
+
+                // #37 过滤功能性子网：输电线/轨道/水管/水道在克隆放置后会成为真实市政网络 →
+                // NetXPSystem 按长度发经验（交通建筑连接轨道大额触发）、输电线节点未接入电网弹
+                // 「需要连接电缆」提示。保留道路与人行道（车道/停车/行人功能已验证依赖它们）。
+                // 注意：CopyComponentIfPresent 是浅拷贝，m_SubNets 数组与源 prefab 共享 →
+                // 必须新建数组赋回，绝不能原地改写（会破坏原版建筑声明）。
+                if (clone.TryGet<ObjectSubNets>(out var subNets) && subNets.m_SubNets != null && subNets.m_SubNets.Length > 0)
+                {
+                    var keptNets = new List<ObjectSubNetInfo>(subNets.m_SubNets.Length);
+                    foreach (var entry in subNets.m_SubNets)
+                    {
+                        var net = entry.m_NetPrefab;
+                        if (net is PowerLinePrefab || net is TrackPrefab || net is PipelinePrefab || net is WaterwayPrefab)
+                        {
+                            continue;
+                        }
+
+                        keptNets.Add(entry);
+                    }
+
+                    if (keptNets.Count != subNets.m_SubNets.Length)
+                    {
+                        subNets.m_SubNets = keptNets.ToArray();
+                    }
+                }
+
                 CopyComponentIfPresent<UIObject>(src, clone);             // UI 索引/图标
                 CopyComponentIfPresent<ThemeObject>(src, clone);          // 主题
                 CopyComponentIfPresent<FloatingObject>(src, clone);
