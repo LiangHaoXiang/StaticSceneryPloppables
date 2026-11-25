@@ -20,12 +20,14 @@ namespace StaticSceneryPloppables
         private GetterValueBinding<string> m_CatalogBinding;
         private GetterValueBinding<string> m_EventBinding;
         private GetterValueBinding<string> m_OptionalIconBinding;
+        private GetterValueBinding<bool> m_ToolActiveBinding;
         private string m_OptionalIconResult = string.Empty;
         private bool m_CatalogPushed;
         private string m_PushedEvent = string.Empty;
         private bool m_PanelVisible;
         private SceneryPlacementTool m_Tool;
         private bool m_ToolWasActive;
+        private bool m_SuppressClosePanel;
 
         protected override void OnCreate()
         {
@@ -47,9 +49,19 @@ namespace StaticSceneryPloppables
             AddBinding(new TriggerBinding<string>("ssp", "requestOptionalIcon", RequestOptionalIcon));
             // 面板挂载/卸载上报：面板关闭时不再推送 uievent（否则 UI 侧没有 handler，会刷 WARN）
             AddBinding(new TriggerBinding<bool>("ssp", "panelVisible", visible => { m_PanelVisible = visible; }));
+            // 放置工具激活状态（Esc 两段式第一段的判断依据）：前端 Back 据此决定先退工具还是关面板
+            m_ToolActiveBinding = new GetterValueBinding<bool>("ssp", "toolActive", () => m_Tool != null && m_Tool.IsPlacementActive);
+            AddBinding(m_ToolActiveBinding);
             AddBinding(new TriggerBinding("ssp", "closeTool", () =>
             {
-                World.GetExistingSystemManaged<SceneryPlacementTool>()?.DeactivateTool();
+                var tool = World.GetExistingSystemManaged<SceneryPlacementTool>();
+                // 前端主动取消（Esc 第一段）：抑制随之而来的 closePanel 推送，面板保持打开；
+                // 仅在工具确实激活时置位，避免残留标志吞掉后续右键取消的关面板事件
+                if (tool != null && tool.IsPlacementActive)
+                {
+                    m_SuppressClosePanel = true;
+                }
+                tool?.DeactivateTool();
             }));
         }
 
@@ -73,10 +85,20 @@ namespace StaticSceneryPloppables
             if (m_ToolWasActive && !toolActive)
             {
                 m_Tool?.DeactivateTool();
-                Tools.SceneryPlacementTool.PendingUIEvent = "closePanel";
+                if (m_SuppressClosePanel)
+                {
+                    // Esc 第一段（前端主动取消）：只退工具不关面板
+                    m_SuppressClosePanel = false;
+                }
+                else
+                {
+                    // 右键取消 / 切到其它工具等被动停用 → 关面板（维持原有行为）
+                    Tools.SceneryPlacementTool.PendingUIEvent = "closePanel";
+                }
             }
 
             m_ToolWasActive = toolActive;
+            m_ToolActiveBinding.Update();
 
             // C# 侧事件 → 推给 UI（面板据此关闭）
             // 只在「有事件 且 面板可见」时推送：空字符串也会触发一次 Update，面板已关闭时就是

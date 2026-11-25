@@ -9,3 +9,6 @@ ssp-ui/node_modules/
 ssp-ui/build/
 
 dist/
+
+# 本机环境记录（含机器路径，不入库）
+LOCAL.md

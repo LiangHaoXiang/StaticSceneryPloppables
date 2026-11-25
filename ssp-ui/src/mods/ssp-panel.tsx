@@ -43,8 +43,10 @@ const ZONE_TABS: { key: string; labelKey: string; icon: string }[] = [
     { key: "Transportation", labelKey: "Transportation", icon: "Media/Game/Icons/Transportation.svg" },
     { key: "Parks", labelKey: "Parks", icon: "Media/Game/Icons/ParksAndRecreation.svg" },
 ];
-/** 分区页签：风格/密度/等级三行筛选仅在这类页签下显示且生效 */
+/** 分区页签：密度/等级两行筛选仅在这类页签下显示且生效 */
 const ZONED_TABS = ["Residential", "MixedHousing", "Commercial", "Office", "Industrial"];
+/** 风格行仅在这三个页签下显示且生效（办公/工业实际表现无风格区分，住宅/商业有） */
+const STYLE_TABS = ["Residential", "MixedHousing", "Commercial"];
 /** 服务页签（条目 Zone 值即页签 key；小字与图标规则据此判定） */
 const SERVICE_ZONES = ["Education", "Healthcare", "Garbage", "FireRescue", "PoliceAdmin", "Communications", "Transportation", "Parks"];
 /** 风格/密度/等级只在分区页签下生效；隐藏时已选值保留但不参与过滤（切回自动恢复） */
@@ -60,9 +62,9 @@ const DENSITY_LABEL = (L: LFn): Record<string, string> =>
     ({ "": L("All"), Low: L("Low"), Medium: L("Medium"), High: L("High"), Signature: L("Signature") });
 // 只保留 1/3/5 级：2 级外观与 1 级相同、4 级与 3 级相同（C# 侧也已按此裁剪目录）
 const LEVEL_OPTS = [0, 1, 3, 5];
-/** 面宽/进深选项；GT_SIZE=-1 是「>6格」哨兵值（尺寸均为正数，-1 无歧义） */
+/** 面宽/进深选项；GT_SIZE=-1 是「>6」哨兵值（尺寸均为正数，-1 无歧义） */
 const GT_SIZE = -1;
-const SIZE_OPTS = [0, 2, 3, 4, 5, 6, GT_SIZE];
+const SIZE_OPTS = [0, 1, 2, 3, 4, 5, 6, GT_SIZE];
 
 /* 内置分区图标：随模组打包（coui://ui-mods/images/...），一定加载成功、无渲染开销 */
 const ZONE_ICONS: Record<string, string> = {
@@ -84,7 +86,7 @@ const FALLBACK_EN: Record<string, string> = {
     Rows: "Scroll to browse (rows {0}-{1} of {2})",
     Hint: "Click an item to place. Left-click to keep placing, right-click/Esc to exit.",
     FilterTitle: "Filters", Style: "Style", Density: "Density", Level: "Level", Width: "Width", Depth: "Depth",
-    Low: "Low", Medium: "Medium", High: "High", Cells: "{0}",
+    Low: "Low", Medium: "Medium", High: "High",
     FilterNote: "Applies on top of the search box; closing this panel keeps the selection.",
     LevelNote: "Levels 2 and 4 look identical to 1 and 3, so they are not listed separately.",
     Signature: "Signature",
@@ -157,11 +159,14 @@ function matchesFilter(it: CatalogItem, f: FilterState, query: string): boolean 
     if (f.z === "Residential") { if (it.z !== "Residential" || it.mx) return false; }
     else if (f.z === "MixedHousing") { if (it.z !== "Residential" || !it.mx) return false; }
     else if (f.z && it.z !== f.z) return false;
-    // 风格/密度/等级仅分区页签下生效（其它页签隐藏即暂停，已选值保留）；面宽/进深恒生效
+    // 密度/等级仅分区页签下生效；风格仅住宅/混合/商业生效（办公/工业无风格区分）；
+    // 隐藏即暂停（已选值保留），面宽/进深恒生效
     if (zonedFilterActive(f.z)) {
-        if (f.s && it.st !== f.s) return false;
         if (f.d && it.d !== f.d) return false;
         if (f.l > 0 && it.l !== f.l) return false;
+    }
+    if (STYLE_TABS.includes(f.z)) {
+        if (f.s && it.st !== f.s) return false;
     }
     if (f.w === GT_SIZE) { if (it.w <= 6) return false; }
     else if (f.w > 0 && it.w !== f.w) return false;
@@ -398,19 +403,33 @@ function PanelBody(props: {
     }, [props.onClose]);
 
     // Esc = 游戏的 Back 输入动作（不是 DOM keydown，Gameface 不会把按键派发给页面）。
-    // 与 Find It 同款：用 InputActionConsumer 认领 Back，顺便阻止 Back 打开暂停菜单；
-    // 面板打开期间本组件常驻，因此这里不做额外条件判断。
+    // 与 Find It 同款：用 InputActionConsumer 认领 Back，顺便阻止 Back 打开暂停菜单。
+    // 两段式：放置激活中 → 第一次 Esc 只取消放置（面板保持），未在放置 → 关闭面板。
+    const [toolActive, setToolActive] = React.useState(false);
+    React.useEffect(() => {
+        const engine = (window as any).engine;
+        const onUpdate = (payload: any) => {
+            const v = typeof payload === "boolean" ? payload : payload?.value;
+            setToolActive(v === true);
+        };
+        engine.on("ssp.toolActive.update", onUpdate);
+        engine.trigger("ssp.toolActive.subscribe");
+        return () => { engine.off("ssp.toolActive.update", onUpdate); };
+    }, []);
     const backActions = React.useMemo(
         () => ({
             Back: () => {
-                // 先让 C# 取消放置工具，再关面板（两者顺序无关，但要都做，否则会留下激活的工具）
-                try {
-                    (window as any).engine?.trigger?.("ssp.closeTool");
-                } catch { /* ignore */ }
+                if (toolActive) {
+                    // 第一段 Esc：仅取消放置工具，面板保持打开
+                    try {
+                        (window as any).engine?.trigger?.("ssp.closeTool");
+                    } catch { /* ignore */ }
+                    return;
+                }
                 props.onClose?.();
             },
         }),
-        [props.onClose]
+        [props.onClose, toolActive]
     );
 
     // 搜索纯前端：整份目录已在内存里，打字即时过滤，不触发任何 C# 调用
@@ -624,12 +643,13 @@ function chunk<T>(arr: T[], count: number): T[][] {
 function FilterPanel(props: { filter: FilterState; apply: (next: FilterState) => void; onClose: () => void }) {
     const { filter, apply } = props;
     const L = useText();
-    // 风格/密度/等级三行仅分区页签下显示（此时过滤也生效）；面宽/进深恒显示
+    // 密度/等级两行仅分区页签下显示；风格行更窄（仅住宅/混合/商业，办公/工业无风格区分）；面宽/进深恒显示
     const zoned = zonedFilterActive(filter.z);
+    const styleRow = STYLE_TABS.includes(filter.z);
     return (
         <Panel header={L("FilterTitle")} onClose={props.onClose} style={{ width: "470rem" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "6rem", padding: "10rem" }}>
-                {zoned && (<>
+                {styleRow && (
                 <div style={{ display: "flex", gap: "6rem", alignItems: "center" }}>
                     <span style={{ color: "#7d9bb5", fontSize: "11rem", width: "52rem" }}>{L("Style")}</span>
                     {STYLE_OPTS.map((s) => (
@@ -637,6 +657,8 @@ function FilterPanel(props: { filter: FilterState; apply: (next: FilterState) =>
                             onClick={() => apply({ ...filter, s: s.key })} />
                     ))}
                 </div>
+                )}
+                {zoned && (
                 <div style={{ display: "flex", gap: "6rem", alignItems: "center" }}>
                     <span style={{ color: "#7d9bb5", fontSize: "11rem", width: "52rem" }}>{L("Density")}</span>
                     {DENSITY_OPTS.map((d) => (
@@ -644,7 +666,7 @@ function FilterPanel(props: { filter: FilterState; apply: (next: FilterState) =>
                             onClick={() => apply({ ...filter, d })} />
                     ))}
                 </div>
-                </>)}
+                )}
                 {zoned && (
                 <div style={{ display: "flex", gap: "6rem", alignItems: "center" }}>
                     {/* #20：悬停「等级」标签说明为何只有 1/3/5（原版 2/4 级外观与 1/3 相同，目录侧已裁剪） */}
@@ -660,14 +682,14 @@ function FilterPanel(props: { filter: FilterState; apply: (next: FilterState) =>
                 <div style={{ display: "flex", gap: "6rem", alignItems: "center" }}>
                     <span style={{ color: "#7d9bb5", fontSize: "11rem", width: "52rem" }}>{L("Width")}</span>
                     {SIZE_OPTS.map((w) => (
-                        <Chip key={w} label={w === 0 ? L("All") : L("Cells", w === GT_SIZE ? ">6" : w)} active={filter.w === w}
+                        <Chip key={w} label={w === 0 ? L("All") : w === GT_SIZE ? ">6" : String(w)} active={filter.w === w}
                             onClick={() => apply({ ...filter, w })} />
                     ))}
                 </div>
                 <div style={{ display: "flex", gap: "6rem", alignItems: "center" }}>
                     <span style={{ color: "#7d9bb5", fontSize: "11rem", width: "52rem" }}>{L("Depth")}</span>
                     {SIZE_OPTS.map((dp) => (
-                        <Chip key={dp} label={dp === 0 ? L("All") : L("Cells", dp === GT_SIZE ? ">6" : dp)} active={filter.dp === dp}
+                        <Chip key={dp} label={dp === 0 ? L("All") : dp === GT_SIZE ? ">6" : String(dp)} active={filter.dp === dp}
                             onClick={() => apply({ ...filter, dp })} />
                     ))}
                 </div>
