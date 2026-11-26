@@ -1,8 +1,9 @@
 import React from "react";
 
 // AIL is optional. For regular buildings only coui://ail/ URLs are used (written by AIL itself).
-// Signature buildings (#27) additionally get their vanilla icon / atlas thumbnail from C#,
-// so any non-empty URL from the binding is trusted; broken images fall back to zone SVG.
+// Signature and service buildings additionally get their vanilla icon / atlas thumbnail from C#
+// (the game's built-in atlas has art for them), so any non-empty URL from the binding is trusted;
+// broken images fall back to zone SVG.
 const STEP_MS = 60;            // half the previous 120ms: visible pictures appear faster
 const RECHECK_MS = 2400;       // per-item cadence while AIL may still be initialising
 const MAX_ATTEMPTS = 24;       // bounded per item per panel session

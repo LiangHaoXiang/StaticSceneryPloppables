@@ -82,7 +82,6 @@ namespace StaticSceneryPloppables
             m_OursCache[prefabEntity] = ours;
             return ours;
         }
-        /// <summary>
         /// <summary>初始化诊断用的查询与依赖系统（只服务实体树 dump）。</summary>
         private void InitDiagnostics()
         {
@@ -198,7 +197,6 @@ namespace StaticSceneryPloppables
                 var sb = new System.Text.StringBuilder(1024);
                 sb.Append($"[SSP] DUMP({tag}) {prefabName} entity={root.Index}:{root.Version}");
                 sb.Append($", Building={EntityManager.HasComponent<Game.Buildings.Building>(root)}");
-                sb.Append($", AssetStampData={EntityManager.HasComponent<AssetStampData>(root)}");
                 sb.Append($", Owner={(EntityManager.HasComponent<Owner>(root) ? EntityManager.GetComponentData<Owner>(root).m_Owner.ToString() : "-")}");
                 if (EntityManager.HasComponent<Game.Objects.Transform>(root))
                 {
@@ -283,7 +281,7 @@ namespace StaticSceneryPloppables
                         sb.Append($"\n    [SSP] relocate check: entity={root.Index}:{root.Version}, oldAreas={goneCount + aliveCount}, gone={goneCount}, stillAlive={aliveCount}, listedInBuffer={listedCount}");
                         if (aliveCount > 0 && listedCount == 0)
                         {
-                            sb.Append(" -> 旧地皮已变孤儿，由扫描/排队删除接手");
+                            sb.Append(" -> 旧地皮已变孤儿（引擎 Create 管线同源，正常场景不应出现）");
                         }
                         else if (listedCount > 0)
                         {

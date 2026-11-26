@@ -11,7 +11,8 @@ namespace StaticSceneryPloppables
 {
     /// <summary>
     /// Gameface 桥：**一次性推送整份目录**（ssp.catalog）+ 选择放置（ssp.select）+ 工具取消事件（ssp.uievent）
-    /// + 按需图标查询（ssp.requestOptionalIcon → ssp.optionalIconResult，仅当前可见窗口条目，见 #16 AIL 可选增强）。
+    /// + 按需图标查询（ssp.requestOptionalIcon → ssp.optionalIconResult，仅当前可见窗口条目，见 #16 AIL 可选增强）
+    /// + 放置工具激活状态（ssp.toolActive，Esc 两段式第一段的判断依据）。
     /// 目录只推送一次，搜索/筛选/排序全部在前端完成——打字不触发任何 C# 计算。
     /// 绑定协议：GetterValueBinding 推送事件名为 &lt;name&gt;.update，JS 需先 trigger &lt;name&gt;.subscribe。
     /// </summary>

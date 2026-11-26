@@ -8,7 +8,6 @@ using Game.Prefabs;
 using Game.SceneFlow;
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Mathematics;
 using UnityEngine;
 
 namespace StaticSceneryPloppables.Systems
@@ -49,7 +48,7 @@ namespace StaticSceneryPloppables.Systems
             public string Name;      // 本地化显示名（Find It 同源）
             public string RawName;   // 内部 prefab 名（搜索兜底）
             public string IconUrl;   // 建目录时源建筑 m_Icon 的快照（仅供 LogIconSummary 诊断；面板图标走 AIL 按需查询，不推给 UI）
-            public string Zone;      // Residential/Commercial/Industrial/Office
+            public string Zone;      // Residential/Commercial/Industrial/Office 或服务页签 key（教育/医疗/垃圾/消防/治安行政/通讯/交通/公园）
             public string Density;   // Low/Medium/High/""（zone 名解析）
             public int Level;        // 1-5
             public int LotW;         // 面宽（格）
@@ -60,7 +59,7 @@ namespace StaticSceneryPloppables.Systems
             public string NameJson;      // 已转义的 JSON 字符串内容
             public string RawNameJson;
             public bool IsSignature;     // 标志性建筑（密度单列 Signature 档）
-            public bool IsService;       // 服务建筑（四类之一；图标走原版图路径）
+            public bool IsService;       // 服务建筑（八类之一；图标走原版图路径）
             public bool IsMixed;         // 混合型住宅（住宅属性 + 可售卖/可制造）
             public string Style;         // 风格："EU" / "NA" / ""（按 prefab 名前缀）
         }
@@ -108,7 +107,7 @@ namespace StaticSceneryPloppables.Systems
                 }
             });
             RequireForUpdate(m_PrefabQuery);
-            Mod.log.Warn($"[SSP] stamp factory created. enableVariants={m_Enabled}");
+            Mod.log.Warn($"[SSP] catalog factory created. enableVariants={m_Enabled}");
         }
 
         protected override void OnUpdate()
@@ -154,7 +153,10 @@ namespace StaticSceneryPloppables.Systems
                 m_BuildSw?.Stop();
                 Mod.log.Warn($"[SSP] BUILD COMPLETE: {Catalog.Count} entries in catalog, build took {m_BuildSw?.ElapsedMilliseconds ?? 0}ms");
                 LogServiceSummary();
-                LogIconSummary();
+                if (Mod.DiagnosticsEnabled)
+                {
+                    LogIconSummary();
+                }
                 // 给剥离版 prefab 补 Assets.NAME[...] 词条（否则信息面板/提示显示原始 key）
                 Localization.PrefabNamePatcher.SetMapping(PrefabTitleIds);
 
@@ -247,7 +249,7 @@ namespace StaticSceneryPloppables.Systems
                     }
                     else if (ServiceZoneOf(bp) != null)
                     {
-                        // 服务建筑（四类之一）：等级恒 0，不参与 L2/L4 去重
+                        // 服务建筑（八类之一）：等级恒 0，不参与 L2/L4 去重
                     }
                     else
                     {
@@ -310,7 +312,7 @@ namespace StaticSceneryPloppables.Systems
             // ② 目录条目（只登记展示信息，放置直接用上面的剥离建筑）
             phaseSw.Restart();
             var entry = BuildEntry(source);
-            entry.Building = stripped; // 直接放置用（与 Find It 同源：ActivatePrefabTool）
+            entry.Building = stripped; // 直接放置用（经 SceneryPlacementTool 的 Create 模式放置）
             m_EntryMs += phaseSw.Elapsed.TotalMilliseconds;
 
             // 信息面板/悬停提示按 "Assets.NAME[prefabName]" 查字典，先把我们的名字映射到原版名称
@@ -328,7 +330,7 @@ namespace StaticSceneryPloppables.Systems
 
         /// <summary>
         /// 解析服务建筑类别：ServiceObject → ServicePrefab 实体 → ServiceData.m_Service；
-        /// 返回页签 key，非四类收录范围（或非服务建筑）返回 null。
+        /// 返回页签 key，非八类收录范围（或非服务建筑）返回 null。
         /// </summary>
         private string ServiceZoneOf(BuildingPrefab source)
         {
@@ -376,8 +378,10 @@ namespace StaticSceneryPloppables.Systems
             string density = "";
             int level = 0;
             bool isSignature = source.Has<SignatureBuilding>();
-            string serviceZone = isSignature ? null : ServiceZoneOf(source); // 服务页签 key（四类之一）
-            string icon = SafeIcon(source); // 建目录时的快照；AIL 迟到时，UI 会按当前可见条目重读源 prefab
+            string serviceZone = isSignature ? null : ServiceZoneOf(source); // 服务页签 key（八类之一）
+            // IconUrl 仅供诊断日志（LogIconSummary）：面板图标走 AIL 按需查询/原版图，目录 JSON 不含图标字段。
+            // 诊断关闭时跳过整条 GetIcon 链路（每条目一次源建筑查询 + 分区兜底查询）。
+            string icon = Mod.DiagnosticsEnabled ? SafeIcon(source) : "";
 
             try
             {
@@ -413,7 +417,7 @@ namespace StaticSceneryPloppables.Systems
                         }
 
                         // 没有源图时以分区 SVG 兜底；不猜 thumbnail:// URI（现版本只读图集，缺图不能自动生成）。
-                        if (icon.Length == 0)
+                        if (icon.Length == 0 && Mod.DiagnosticsEnabled)
                         {
                             icon = SafeIcon(zonePrefab);
                         }
@@ -425,7 +429,7 @@ namespace StaticSceneryPloppables.Systems
                 // 元数据缺失不阻塞目录
             }
 
-            // 服务建筑：Zone 直接用页签 key（教育/医疗/消防/治安行政），不参与密度与等级
+            // 服务建筑：Zone 直接用页签 key（教育/医疗/垃圾/消防/治安行政/通讯/交通/公园），不参与密度与等级
             if (serviceZone != null)
             {
                 zone = serviceZone;
@@ -517,8 +521,8 @@ namespace StaticSceneryPloppables.Systems
         }
 
         /// <summary>
-        /// 目录排序（用户规则，2026-11-14 最终版，共 8 级；2026-11-18 密度新增「标志性」档）：
-        /// ① 分区：住宅 → 混合居民区 → 商业 → 办公 → 工业 → 未知
+        /// 目录排序（8 级比较；分区含八类服务，密度含「标志性」档）：
+        /// ① 分区：住宅 → 混合居民区 → 商业 → 办公 → 工业 → 八类服务（教育/医疗/垃圾/消防/治安行政/通讯/交通/公园）→ 未知
         /// ② 密度：无密度 → 低 → 中 → 高 → 标志性
         /// ③ 占地总面积（面宽×进深）小的在前
         /// ④ 面宽小的在前

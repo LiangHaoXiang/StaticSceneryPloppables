@@ -81,7 +81,6 @@ namespace StaticSceneryPloppables
                 log.Warn($"locale registration failed: {e.Message}");
             }
 
-            // TODO M4: 发布打磨（首启性能/存档安全回归/PDX 发布）
         }
 
         public void OnDispose()
