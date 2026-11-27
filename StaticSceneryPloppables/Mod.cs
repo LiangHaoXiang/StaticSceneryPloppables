@@ -14,9 +14,9 @@ namespace StaticSceneryPloppables
         public const string ModIdString = "167410";
 
         /// <summary>
-        /// 详细诊断（实体树 dump、每轮扫描摘要、逐块地皮距离）开关。
-        /// 默认关闭：这些日志每轮都要拼字符串并写盘，会明显拖慢帧率。
-        /// 排查问题时临时改为 true 再编译。
+        /// 详细诊断开关（默认关闭）：开启后构建期输出图标缺失统计与分段耗时，
+        /// 且需配合 /p:SspDiagnostics=true 重新编译才含实体树 dump。
+        /// 这些日志每轮都要拼字符串并写盘，会明显拖慢帧率；排查问题时临时改为 true 再编译。
         /// </summary>
         public static bool DiagnosticsEnabled = false;
 

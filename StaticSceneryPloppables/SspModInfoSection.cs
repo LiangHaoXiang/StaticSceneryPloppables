@@ -7,12 +7,12 @@ using UnityEngine.Scripting;
 namespace StaticSceneryPloppables
 {
     /// <summary>
-    /// 信息面板「用户创作内容」文本卡（#35）：选中 SSP 剥离建筑时，在原生信息面板中
-    /// 显示模组名称/作者/模组ID/版本四行静态信息。
+    /// 信息面板「用户创作内容」卡（#35）：选中 SSP 剥离建筑时，在原生信息面板中
+    /// 显示本模组的信息卡（名称/作者/模组ID/版本/订阅数，全部由原生渲染器按 modId 从平台实时取）。
+    /// 本类只负责「何时可见」并写出 modId——渲染完全复用原生 PdxModsSection 渲染器
+    /// （前端把它按类型键映射到本类，见 ssp-ui/src/mods/ssp-info-section.tsx）。
     /// 注册：Mod.cs 中 AddMiddleSection 挂入 SelectedInfoUISystem 的中区 section 列表
-    /// （PdxModsSection 同位），并 UpdateAt(UIUpdate) 驱动 OnUpdate 刷新可见性；
-    /// 前端在 selectedInfoSectionComponents 注册表按本类全名注册渲染器
-    /// （见 ssp-ui/src/mods/ssp-info-section.tsx，InfoLoom 同款机制）。
+    /// （PdxModsSection 同位），并 UpdateAt(UIUpdate) 驱动 OnUpdate 刷新可见性。
     /// </summary>
     public partial class SspModInfoSection : InfoSectionBase
     {

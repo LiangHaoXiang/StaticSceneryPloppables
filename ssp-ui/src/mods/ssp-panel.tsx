@@ -21,7 +21,7 @@ interface CatalogItem {
     mx: boolean;
     /** 风格："EU" / "NA" / "" */
     st: string;
-    /** 预拼接的小写搜索串（n + rn）：搜索时不再对 2000 条逐次 toLowerCase（#12） */
+    /** 预拼接的小写搜索串（n + rn）：搜索时不再对 2000 条逐次 toLowerCase */
     sb: string;
 }
 interface CatalogPayload { total: number; complete: boolean; items: any[]; }
@@ -91,7 +91,7 @@ const FALLBACK_EN: Record<string, string> = {
     LevelNote: "Levels 2 and 4 look identical to 1 and 3, so they are not listed separately.",
     Signature: "Signature",
     Education: "Education", Healthcare: "Healthcare", FireRescue: "Fire & Rescue", PoliceAdmin: "Police & Admin",
-    Communications: "Communications", Parks: "Parks",
+    Communications: "Communications", Transportation: "Transportation", Parks: "Parks", Garbage: "Garbage",
 };
 
 type LFn = (key: string, a0?: any, a1?: any, a2?: any) => string;
@@ -124,7 +124,6 @@ const GAP = 6;             // 条目间距（rem）
 const ROW_H = 150;         // 单行高度（rem）
 const VIEW_H = VISIBLE_ROWS * ROW_H;
 // 面板背景：接近不透明的纯色（不用 backdrop-filter，避免整块离屏合成掉帧）
-const BACKDROP = "none";
 const PANEL_BG = "rgba(16,19,29,0.97)";
 const PANEL_W = 700;       // 面板宽度（rem，Find It 量级）
 const GRID_W = PANEL_W - 20 - 14; // 去掉内边距 20 与滚动条 8+间距 6
@@ -153,7 +152,7 @@ function toItem(raw: any): CatalogItem {
     };
 }
 
-/** 前端筛选：搜索词 + 页签(z) + 密度(d) + 等级(l) + 面宽(w) + 进深(dp) */
+/** 前端筛选：搜索词 + 页签(z) + 风格(s) + 密度(d) + 等级(l) + 面宽(w) + 进深(dp) */
 function matchesFilter(it: CatalogItem, f: FilterState, query: string): boolean {
     // 「住宅」只显示纯住宅，「混合型住宅」只显示混合型（C# 已按 IsMixed 分类）
     if (f.z === "Residential") { if (it.z !== "Residential" || it.mx) return false; }
@@ -329,6 +328,8 @@ const ResultRow = React.memo(function ResultRow(props: { item: CatalogItem; ailI
         </div>
     );
 }, (a, b) => a.item.i === b.item.i && a.item.z === b.item.z && a.item.n === b.item.n
+    && a.item.d === b.item.d && a.item.l === b.item.l && a.item.w === b.item.w
+    && a.item.dp === b.item.dp && a.item.si === b.item.si
     && a.ailIcon === b.ailIcon && a.selected === b.selected && a.onPick === b.onPick);
 
 /* ---------- 面板主体 ---------- */
@@ -374,11 +375,14 @@ function PanelBody(props: {
 
         engine.on("ssp.catalog.update", onUpdate);
         engine.trigger("ssp.catalog.subscribe");
-        // 目录仍在构建（约 4 秒）：每 400ms 重新订阅，直到拿到 complete=true 为止
-        timer = setInterval(() => {
-            if (persisted.complete) { stop(); return; }
-            engine.trigger("ssp.catalog.subscribe");
-        }, 400);
+        // 目录已构建完成并缓存过 → 订阅一次即拿到 complete=true，无需轮询；
+        // 仍在构建（约 4 秒）才每 400ms 重新订阅，直到拿到 complete=true 为止
+        if (!persisted.complete) {
+            timer = setInterval(() => {
+                if (persisted.complete) { stop(); return; }
+                engine.trigger("ssp.catalog.subscribe");
+            }, 400);
+        }
 
         return () => { stop(); engine.off("ssp.catalog.update", onUpdate); };
     }, []);
@@ -538,7 +542,7 @@ function PanelBody(props: {
             width: `${PANEL_W}rem`, display: "flex", flexDirection: "column",
             borderRadius: "4rem", overflow: "hidden",
             backgroundColor: PANEL_BG,
-            backdropFilter: BACKDROP,
+            backdropFilter: "none",
             color: "#f0fbff", pointerEvents: "auto",
         }}>
             <InputActionConsumer actions={backActions} ignoreFocusState={true} />
@@ -669,7 +673,7 @@ function FilterPanel(props: { filter: FilterState; apply: (next: FilterState) =>
                 )}
                 {zoned && (
                 <div style={{ display: "flex", gap: "6rem", alignItems: "center" }}>
-                    {/* #20：悬停「等级」标签说明为何只有 1/3/5（原版 2/4 级外观与 1/3 相同，目录侧已裁剪） */}
+                    {/* 悬停「等级」标签说明为何只有 1/3/5（原版 2/4 级外观与 1/3 相同，目录侧已裁剪） */}
                     <Tooltip tooltip={L("LevelNote")}>
                         <span style={{ color: "#7d9bb5", fontSize: "11rem", width: "52rem", cursor: "help" }}>{L("Level")}</span>
                     </Tooltip>

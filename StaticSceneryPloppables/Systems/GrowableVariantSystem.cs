@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.IO;
 using System.Reflection;
 using Colossal.Entities;
 using Game;
@@ -80,22 +79,15 @@ namespace StaticSceneryPloppables.Systems
         /// <summary>目录构建计时（定位载入耗时用）。</summary>
         private System.Diagnostics.Stopwatch m_BuildSw;
         private int m_NextProgressLog = 500;
-        // 分段计时（#24）：只在 DiagnosticsEnabled 时输出，平时仅累加几次 double 运算
+        // 分段计时：只在 DiagnosticsEnabled 时输出，平时仅累加几次 double 运算
         private double m_CloneMs;
         private double m_AddMs;
         private double m_EntryMs;
         private readonly List<BuildingPrefab> m_Pending = new List<BuildingPrefab>();
 
-        private bool m_Enabled = true;
-
-        private static string UserDataDir =>
-            Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile),
-                @"AppData\LocalLow\Colossal Order\Cities Skylines II");
-
         protected override void OnCreate()
         {
             base.OnCreate();
-            LoadConfig();
             m_PrefabSystem = World.GetOrCreateSystemManaged<PrefabSystem>();
             m_PrefabUISystem = World.GetOrCreateSystemManaged<Game.UI.InGame.PrefabUISystem>();
             m_PrefabQuery = GetEntityQuery(new EntityQueryDesc
@@ -107,12 +99,12 @@ namespace StaticSceneryPloppables.Systems
                 }
             });
             RequireForUpdate(m_PrefabQuery);
-            Mod.log.Warn($"[SSP] catalog factory created. enableVariants={m_Enabled}");
+            Mod.log.Warn("[SSP] catalog factory created");
         }
 
         protected override void OnUpdate()
         {
-            if (!m_Enabled || BuildComplete)
+            if (BuildComplete)
             {
                 return;
             }
@@ -772,37 +764,6 @@ namespace StaticSceneryPloppables.Systems
             }
 
             return null;
-        }
-
-        private void LoadConfig()
-        {
-            try
-            {
-                string path = Path.Combine(UserDataDir, "ModsData", "StaticSceneryPloppables", "config.json");
-                if (!File.Exists(path))
-                {
-                    return;
-                }
-
-                foreach (string line in File.ReadAllLines(path))
-                {
-                    string trimmed = line.Replace(" ", string.Empty);
-                    int colon = trimmed.IndexOf(':');
-                    if (colon < 0)
-                    {
-                        continue;
-                    }
-
-                    if (trimmed[..colon] == "\"enableVariants\"" && trimmed[(colon + 1)..].TrimEnd(',', '}', ' ') == "false")
-                    {
-                        m_Enabled = false;
-                    }
-                }
-            }
-            catch (System.Exception e)
-            {
-                Mod.log.Warn($"[SSP] config load failed (using defaults): {e.Message}");
-            }
         }
 
         /// <summary>
